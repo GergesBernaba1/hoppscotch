@@ -1,0 +1,182 @@
+<template>
+  <div class="flex flex-col flex-1">
+    <div class="sticky z-10 flex items-center justify-between px-4 py-2 bg-primary top-upperRequestRect">
+      <div class="flex items-center">
+        <span class="inline-flex items-center px-2 font-semibold">
+          {{ t("soap.history") }}
+        </span>
+        <span class="inline-flex items-center ltr:ml-2 rtl:mr-2 px-2 py-0.5 text-tiny font-semibold rounded badge">
+          {{ history.length }}
+        </span>
+        <HoppButtonSecondary
+          v-tippy="{ content: t('clear') }"
+          :icon="IconTrash"
+          outline
+          class="ml-2"
+          @click="() => confirmRemove = true"
+        />
+      </div>
+    </div>
+
+    <div class="flex flex-col flex-1 overflow-auto divide-y divide-dividerLight bg-primary">
+      <!-- Empty state for no history entries -->
+      <div v-if="history.length === 0" class="flex flex-col items-center justify-center flex-1 p-4">
+        <span class="mb-4 text-secondaryLight">{{ t('no_history') }}</span>
+        <HoppButtonPrimary
+          label="New Request"
+          outline
+          @click="createNewRequest"
+        />
+      </div>
+      
+      <div
+        v-for="(entry, index) in history"
+        :key="index"
+        class="flex flex-col"
+      >
+        <div @click="selectEntry(index)" class="group cursor-pointer divide-y divide-dividerLight">
+          <div class="flex items-center px-4 py-2 bg-primary hover:bg-secondary">            <div class="flex flex-1">
+              <span class="rounded text-primary-contrast bg-accent px-2 py-1 text-tiny font-medium">POST</span>
+              <span class="truncate px-4">{{ entry.request.endpoint }}</span>
+            </div>
+            
+            <div class="flex">
+              <HoppButtonSecondary
+                v-tippy="{ content: entry.starred ? t('unstar') : t('star') }"
+                :icon="entry.starred ? IconStarFilled : IconStar"
+                outline
+                class="hidden group-hover:inline-flex"
+                @click.stop="toggleStar(index)"
+              />
+              <HoppButtonSecondary
+                v-tippy="{ content: t('delete') }"
+                :icon="IconTrash"
+                outline
+                class="hidden group-hover:inline-flex ltr:ml-2 rtl:mr-2"
+                @click.stop="removeEntry(index)"
+              />
+            </div>
+          </div>
+          
+          <div class="flex items-center justify-between px-4 py-2 border-b border-dividerLight">
+            <div class="flex space-x-2">
+              <div class="flex items-center justify-center">
+                <span class="px-1 rounded" :class="getStatusClasses(entry.response?.statusCode)">
+                  {{ entry.response?.statusCode || 'N/A' }}
+                </span>
+              </div>
+              <div class="text-secondaryLight">{{ new Date(entry.timestamp).toLocaleString() }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <HoppSmartModal
+      v-if="confirmRemove"
+      :title="t('confirm')"
+      @hide-modal="confirmRemove = false"
+    >
+      <template #body>
+        <p>{{ t("confirm_clear") }}</p>
+      </template>
+      <template #actions>
+        <HoppButtonSecondary
+          :label="t('cancel')"
+          @click="confirmRemove = false"
+        />
+        <HoppButtonPrimary
+          :label="t('clear')"
+          @click="clearHistory"
+        />
+      </template>
+    </HoppSmartModal>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from "vue"
+import { useI18n } from "vue-i18n"
+import { useSOAPHistoryStore } from "~/newstore/SOAPHistory"
+import IconTrash from "~icons/lucide/trash"
+import IconStar from "~icons/lucide/star"
+import IconStarFilled from "~icons/lucide/star-filled"
+import { HoppButtonSecondary, HoppButtonPrimary, HoppSmartModal } from "@hoppscotch/ui"
+import { useService } from "dioc/vue"
+import { SOAPTabService } from "~/services/tab/soap"
+
+const { t } = useI18n()
+const historyStore = useSOAPHistoryStore()
+const tabService = useService(SOAPTabService)
+const confirmRemove = ref(false)
+
+const history = historyStore.history
+
+function toggleStar(index: number) {
+  historyStore.toggleStar(index)
+}
+
+function removeEntry(index: number) {
+  historyStore.removeEntry(index)
+}
+
+function clearHistory() {
+  historyStore.clearHistory()
+  confirmRemove.value = false
+}
+
+function selectEntry(index: number) {
+  const entry = history[index]
+  if (!entry) return
+  
+  const activeTabID = tabService.activeTabID?.value
+  if (activeTabID) {
+    tabService.updateRequest(activeTabID, entry.request as any)
+  } else {
+    createNewRequest()
+  }
+}
+
+function getStatusClasses(statusCode?: number) {
+  if (!statusCode) return ""
+  
+  if (statusCode >= 200 && statusCode < 300) {
+    return "text-green-500"
+  } else if (statusCode >= 400) {
+    return "text-red-500"
+  } else {
+    return "text-yellow-500"
+  }
+}
+
+function createNewRequest() {
+  // Add a new tab with default request
+  tabService.createNewTab({
+    type: "request",
+    request: {
+      endpoint: "",
+      wsdlUrl: "",
+      soapVersion: "1.1",
+      params: [],
+      headers: [],
+      body: `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+  </soap:Header>
+  <soap:Body>
+    <!-- Your SOAP request body goes here -->
+  </soap:Body>
+</soap:Envelope>`,
+      auth: {
+        authType: "none",
+        authActive: true
+      },
+      preRequestScript: "",
+      testScript: "",
+      attachments: []
+    },
+    isDirty: false,
+    optionTabPreference: "params"
+  })
+}
+</script>

@@ -47,13 +47,13 @@
             <HttpExampleResponseTab
               v-if="tab.document.type === 'example-response'"
               :model-value="tab"
-              @update:model-value="onTabUpdate"
+              @update:model-value="onExampleResponseTabUpdate"
             />
             <!-- Render TabContents -->
             <HttpTestRunner
               v-if="tab.document.type === 'test-runner'"
               :model-value="tab"
-              @update:model-value="onTabUpdate"
+              @update:model-value="onTestRunnerTabUpdate"
             />
             <!-- When document.type === 'request' the tab type is HoppTab<HoppRequestDocument>-->
             <HttpRequestTab
@@ -135,22 +135,23 @@
 <script lang="ts" setup>
 import { ref, onMounted, computed } from "vue"
 import { safelyExtractRESTRequest } from "@hoppscotch/data"
-import { translateExtURLParams } from "~/helpers/RESTExtURLParams"
+import { translateExtURLParams } from "../helpers/RESTExtURLParams"
 import { useRoute } from "vue-router"
-import { useI18n } from "@composables/i18n"
-import { getDefaultRESTRequest } from "~/helpers/rest/default"
-import { defineActionHandler, invokeAction } from "~/helpers/actions"
-import { platform } from "~/platform"
-import { useReadonlyStream } from "~/composables/stream"
+import { useI18n } from "../composables/i18n"
+import { getDefaultRESTRequest } from "../helpers/rest/default"
+import { defineActionHandler, invokeAction } from "../helpers/actions"
+import { platform } from "../platform"
+import { useReadonlyStream } from "../composables/stream"
+// @ts-ignore - TypeScript has wrong type information, the actual JS exports useService as named export
 import { useService } from "dioc/vue"
-import { InspectionService } from "~/services/inspection"
-import { RequestInspectorService } from "~/services/inspection/inspectors/request.inspector"
-import { EnvironmentInspectorService } from "~/services/inspection/inspectors/environment.inspector"
-import { ResponseInspectorService } from "~/services/inspection/inspectors/response.inspector"
+import { InspectionService } from "../services/inspection"
+import { RequestInspectorService } from "../services/inspection/inspectors/request.inspector"
+import { EnvironmentInspectorService } from "../services/inspection/inspectors/environment.inspector"
+import { ResponseInspectorService } from "../services/inspection/inspectors/response.inspector"
 import { cloneDeep } from "lodash-es"
-import { RESTTabService } from "~/services/tab/rest"
-import { HoppTab } from "~/services/tab"
-import { HoppRequestDocument, HoppTabDocument } from "~/helpers/rest/document"
+import { RESTTabService } from "../services/tab/rest"
+import { HoppTab } from "../services/tab"
+import { HoppRequestDocument, HoppTabDocument, HoppSavedExampleDocument, HoppTestRunnerDocument } from "../helpers/rest/document"
 
 const savingRequest = ref(false)
 const confirmingCloseForTabID = ref<string | null>(null)
@@ -213,6 +214,14 @@ function bindRequestToURLParams() {
 }
 
 const onTabUpdate = (tab: HoppTab<HoppRequestDocument>) => {
+  tabs.updateTab(tab)
+}
+
+const onExampleResponseTabUpdate = (tab: HoppTab<HoppSavedExampleDocument>) => {
+  tabs.updateTab(tab)
+}
+
+const onTestRunnerTabUpdate = (tab: HoppTab<HoppTestRunnerDocument>) => {
   tabs.updateTab(tab)
 }
 
@@ -330,16 +339,13 @@ const renameReqName = () => {
 const onCloseConfirmSaveTab = () => {
   if (!savingRequest.value && confirmingCloseForTabID.value) {
     tabs.closeTab(confirmingCloseForTabID.value)
-    inspectionService.deleteTabInspectorResult(confirmingCloseForTabID.value)
     confirmingCloseForTabID.value = null
   }
 }
 
-/**
- * Called when the user confirms they want to save the tab
- */
 const onResolveConfirmSaveTab = () => {
-  if (tabs.currentActiveTab.value.document.saveContext) {
+  const currentTab = tabs.currentActiveTab.value
+  if (currentTab.document.type === 'request' && 'saveContext' in currentTab.document && currentTab.document.saveContext) {
     invokeAction("request-response.save")
 
     if (confirmingCloseForTabID.value) {

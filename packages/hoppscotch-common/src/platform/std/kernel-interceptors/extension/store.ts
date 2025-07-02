@@ -1,5 +1,5 @@
 import { Service } from "dioc"
-import { Store } from "~/kernel/store"
+import { store } from "~/kernel/store"
 import * as E from "fp-ts/Either"
 import * as O from "fp-ts/Option"
 import { ref } from "vue"
@@ -73,7 +73,7 @@ export class KernelInterceptorExtensionStore extends Service {
   private extensionPollIntervalId = ref<ReturnType<typeof setInterval>>()
 
   async onServiceInit(): Promise<void> {
-    const initResult = await Store.init()
+    const initResult = await store.init()
     if (E.isLeft(initResult)) {
       console.error(
         "[ExtensionStore] Failed to initialize store:",
@@ -88,9 +88,9 @@ export class KernelInterceptorExtensionStore extends Service {
       this.setupExtensionStatusListener()
     }
 
-    Store.watch(STORE_NAMESPACE, SETTINGS_KEY).on(
-      "change",
-      async ({ value }) => {
+    store.watch(STORE_NAMESPACE, SETTINGS_KEY).on(
+      "change", 
+      async ({ value }: { value: unknown }) => {
         if (value) {
           const storedData = value as StoredData
           this.settings = storedData.settings
@@ -170,18 +170,17 @@ export class KernelInterceptorExtensionStore extends Service {
     }
     return false
   }
-
   private async loadSettings(): Promise<void> {
-    const loadResult = await Store.get<StoredData>(
+    const loadResult = await store.get(
       STORE_NAMESPACE,
       SETTINGS_KEY
     )
 
     if (E.isRight(loadResult) && loadResult.right) {
-      const storedData = loadResult.right
+      const storedData = loadResult.right as StoredData
       this.settings = {
         ...DEFAULT_SETTINGS,
-        ...storedData.settings,
+        ...(storedData.settings ?? DEFAULT_SETTINGS),
       }
     } else {
       await this.persistSettings()
@@ -195,7 +194,7 @@ export class KernelInterceptorExtensionStore extends Service {
       lastUpdated: new Date().toISOString(),
     }
 
-    const saveResult = await Store.set(
+    const saveResult = await store.set(
       STORE_NAMESPACE,
       SETTINGS_KEY,
       storedData

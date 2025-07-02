@@ -15,6 +15,8 @@
     "paths": {
       "@hoppscotch/common": ["../hoppscotch-common/src/index.ts"],
       "@hoppscotch/common/*": ["../hoppscotch-common/src/*"],
+      "@hoppscotch/data": ["../hoppscotch-data/src/index.ts"],
+      "@hoppscotch/data/*": ["../hoppscotch-data/src/*"],
       "@platform/*": ["./src/platform/*"],
       "@platform-components/*": ["./src/components/*"],
       "@api/*": ["./src/api/*"],

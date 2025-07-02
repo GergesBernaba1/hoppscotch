@@ -7,6 +7,7 @@ import {
   HoppRESTRequest,
   HoppRESTHeaders,
   HoppRESTRequestResponse,
+  HoppSOAPRequest,
   HoppCollection,
   GlobalEnvironment,
 } from "@hoppscotch/data"
@@ -91,6 +92,8 @@ const HoppGQLRequestSchema = entityReference(HoppGQLRequest)
 const HoppRESTCollectionSchema = entityReference(HoppCollection)
 
 const HoppGQLCollectionSchema = entityReference(HoppCollection)
+
+const HoppSOAPRequestSchema = entityReference(HoppSOAPRequest)
 
 export const VUEX_SCHEMA = z.object({
   postwoman: z.optional(
@@ -569,6 +572,113 @@ export const REST_TAB_STATE_SCHEMA = z
             isDirty: z.boolean(),
           }),
         ]),
+      })
+    ),
+  })
+  .strict()
+
+const validSoapOperations = [
+  "params",
+  "headers",
+  "authorization",
+  "body",
+  "preRequestScript",
+  "tests",
+  "attachments",
+] as const
+
+const HoppSOAPSaveContextSchema = z.nullable(
+  z.discriminatedUnion("originLocation", [
+    z
+      .object({
+        originLocation: z.literal("user-collection"),
+        folderPath: z.string(),
+        requestIndex: z.number(),
+      })
+      .strict(),
+    z
+      .object({
+        originLocation: z.literal("team-collection"),
+        requestID: z.string(),
+        teamID: z.optional(z.string()),
+        collectionID: z.optional(z.string()),
+      })
+      .strict(),
+  ])
+)
+
+const HoppSOAPResponseSchema = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("loading"),
+      req: HoppSOAPRequestSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("fail"),
+      statusCode: z.optional(z.number()),
+      headers: z.optional(z.array(z.object({
+        key: z.string(),
+        value: z.string(),
+      }))),
+      body: z.optional(z.union([z.string(), z.instanceof(ArrayBuffer)])),
+      req: HoppSOAPRequestSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("network_fail"),
+      error: z.unknown(),
+      req: HoppSOAPRequestSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("script_fail"),
+      error: z.instanceof(Error),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("success"),
+      statusCode: z.optional(z.number()),
+      headers: z.optional(z.array(z.object({
+        key: z.string(),
+        value: z.string(),
+      }))),
+      body: z.optional(z.union([z.string(), z.instanceof(ArrayBuffer)])),
+      req: HoppSOAPRequestSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("extension_error"),
+      error: z.unknown(),
+      req: HoppSOAPRequestSchema,
+    })
+    .strict(),
+])
+
+export const SOAP_TAB_STATE_SCHEMA = z
+  .object({
+    lastActiveTabID: z.string(),
+    orderedDocs: z.array(
+      z.object({
+        tabID: z.string(),
+        doc: z
+          .object({
+            // Versioned entity
+            request: entityReference(HoppSOAPRequest),
+            isDirty: z.boolean(),
+            saveContext: z.optional(HoppSOAPSaveContextSchema),
+            response: z.optional(z.nullable(HoppSOAPResponseSchema)),
+            testResults: z.optional(z.nullable(HoppTestResultSchema)),
+            responseTabPreference: z.optional(z.string()),
+            optionTabPreference: z.optional(z.enum(validSoapOperations)),
+            inheritedProperties: z.optional(HoppInheritedPropertySchema),
+          })
+          .strict(),
       })
     ),
   })

@@ -9,7 +9,7 @@ import { Service } from "dioc"
 import * as E from "fp-ts/Either"
 import { ref, watch } from "vue"
 import { z } from "zod"
-import { PersistenceService } from "~/services/persistence"
+import { PersistenceService } from "~/services/persistence/service"
 import {
   CACertStore,
   ClientCertsStore,

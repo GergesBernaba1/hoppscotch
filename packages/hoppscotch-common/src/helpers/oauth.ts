@@ -2,7 +2,7 @@ import * as E from "fp-ts/Either"
 import { z } from "zod"
 
 import { getService } from "~/modules/dioc"
-import { PersistenceService } from "~/services/persistence"
+import { PersistenceService } from "~/services/persistence/service"
 import { KernelInterceptorService } from "~/services/kernel-interceptor.service"
 import { content } from "@hoppscotch/kernel"
 

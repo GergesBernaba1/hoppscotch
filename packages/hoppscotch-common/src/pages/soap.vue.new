@@ -1,0 +1,488 @@
+<template>
+  <div class="flex flex-col flex-1 bg-primary">
+    <!-- New SOAP Project Modal -->
+    <NewSOAPProjectModal
+      v-if="showNewProjectModal"
+      :show="showNewProjectModal"
+      @hide-modal="showNewProjectModal = false"
+    />
+    
+    <HoppSmartModal
+      v-if="historyStore.history.length > 0"
+      :show="showConfirmTabClose"
+      :title="t('action.confirm')"
+      @hide-modal="showConfirmTabClose = false"
+    >
+      <template #body>
+        <p>{{ t('soap.confirm_close_tab') }}</p>
+      </template>
+      <template #actions>
+        <HoppButtonSecondary
+          :label="t('action.cancel')"
+          @click="showConfirmTabClose = false"
+        />
+        <HoppButtonPrimary
+          :label="t('action.confirm')"
+          @click="closeTab(tabToClose)"
+        />
+      </template>
+    </HoppSmartModal>
+    
+    <!-- Sample saving modal -->
+    <HoppSmartModal
+      v-if="showSaveSampleModal"
+      :title="t('soap.save_as_sample')"
+      @hide-modal="showSaveSampleModal = false"
+    >
+      <template #body>
+        <div class="flex flex-col">
+          <label class="pb-2 font-semibold" for="sampleName">{{ t('name') }}</label>
+          <input
+            id="sampleName"
+            v-model="sampleName"
+            type="text"
+            class="w-full px-3 py-2 border rounded"
+            :placeholder="t('soap.sample_name_placeholder')"
+          />
+        </div>
+      </template>
+      <template #actions>
+        <HoppButtonSecondary
+          :label="t('action.cancel')"
+          @click="showSaveSampleModal = false"
+        />
+        <HoppButtonPrimary
+          :label="t('action.save')"
+          @click="saveAsSample"
+        />
+      </template>
+    </HoppSmartModal>
+
+    <!-- Tab menu dropdown -->
+    <HoppSmartModal
+      v-if="showTabMenu"
+      :title="t('soap.tab_actions')"
+      @hide-modal="showTabMenu = false"
+    >
+      <template #body>
+        <div class="flex flex-col">
+          <button
+            class="px-4 py-2 text-left hover:bg-primaryLight"
+            @click="duplicateCurrentTab"
+          >
+            {{ t('soap.duplicate_tab') }}
+          </button>
+          <button
+            class="px-4 py-2 text-left hover:bg-primaryLight"
+            @click="openSaveSampleModal"
+          >
+            {{ t('soap.save_as_sample') }}
+          </button>
+          <button
+            class="px-4 py-2 text-left hover:bg-primaryLight"
+            @click="renameCurrentTab"
+          >
+            {{ t('soap.rename_tab') }}
+          </button>
+        </div>
+      </template>
+    </HoppSmartModal>
+
+    <!-- Rename tab modal -->
+    <HoppSmartModal
+      v-if="showRenameModal"
+      :title="t('soap.rename_tab')"
+      @hide-modal="showRenameModal = false"
+    >
+      <template #body>
+        <div class="flex flex-col">
+          <label class="pb-2 font-semibold" for="tabName">{{ t('name') }}</label>
+          <input
+            id="tabName"
+            v-model="tabName"
+            type="text"
+            class="w-full px-3 py-2 border rounded"
+            :placeholder="t('soap.tab_name_placeholder')"
+          />
+        </div>
+      </template>
+      <template #actions>
+        <HoppButtonSecondary
+          :label="t('action.cancel')"
+          @click="showRenameModal = false"
+        />
+        <HoppButtonPrimary
+          :label="t('action.save')"
+          @click="renameTab"
+        />
+      </template>
+    </HoppSmartModal>
+
+    <div class="flex flex-col flex-1 overflow-hidden">
+      <!-- Main horizontal layout with left sidebar and content area -->
+      <div class="flex flex-1">
+        <!-- Left sidebar with history and collections -->
+        <div class="w-xs flex-shrink-0 border-r border-dividerLight">
+          <!-- New project button at the top -->
+          <div class="p-4 flex justify-between items-center border-b border-dividerLight">
+            <span class="font-bold text-lg">{{ t('soap.title') }}</span>
+            <button
+              class="px-3 py-1 bg-primary hover:bg-primaryLight border border-dividerLight rounded"
+              @click="showNewProjectModal = true"
+            >
+              <span class="flex items-center">
+                <svg viewBox="0 0 24 24" class="w-5 h-5 mr-1">
+                  <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                </svg>
+                {{ t('action.new') }}
+              </span>
+            </button>
+          </div>
+          <HoppSmartTabs 
+            v-model="sidebarTab" 
+            styles="sticky z-10 bg-primary">
+            <div id="history">{{ t('history') }}</div>
+            <div id="collections">{{ t('collection') }}</div>
+          </HoppSmartTabs>
+          <div class="flex flex-col flex-1">
+            <History v-if="sidebarTab === 'history'" />
+            <Collections v-else-if="sidebarTab === 'collections'" />
+          </div>
+        </div>
+        
+        <!-- Main content area with request tabs -->
+        <div class="flex flex-col flex-1 overflow-hidden">
+          <HoppSmartTabs
+            v-model="selectedTabID"
+            :tabs="tabs"
+            label-key="document.request.name"
+            unique-key="id"
+            class="overflow-hidden flex-1 flex flex-col"
+            :closable="true"
+            :enable-drag-drop="true"
+            reordering-key="soap-tabs"
+            @tab-close="confirmTabClose"
+            @tab-add="addTab"
+          >
+            <template #suffix>
+              <div class="flex">
+                <button
+                  class="flex items-center justify-center h-8 w-8 hover:bg-primaryLight"
+                  @click="addTab"
+                >
+                  <svg viewBox="0 0 24 24" class="w-5 h-5 text-secondaryLight">
+                    <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                  </svg>
+                </button>
+              </div>
+            </template>
+            <template #tabhead="{ tab }">
+              <div class="flex items-center">
+                <span>{{ tab.document.request.name || 'New Request' }}</span>
+                <button
+                  class="ml-2 p-1 hover:bg-primaryLight rounded"
+                  @click.stop="openTabMenu(tab.id)"
+                >
+                  <svg viewBox="0 0 24 24" class="w-4 h-4 text-secondaryLight">
+                    <path fill="currentColor" d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z" />
+                  </svg>
+                </button>
+              </div>
+            </template>
+            <template #tab="{ tab }">
+              <div class="flex flex-col flex-1 overflow-hidden">
+                <div class="flex flex-col flex-1 overflow-hidden"
+                     :class="{ 'flex-row': isResponseSideBySide && tab.document.response }">
+                  <div class="flex flex-col flex-1 overflow-hidden"
+                       :class="{ 'w-1/2': isResponseSideBySide && tab.document.response }">
+                    <Request :tabID="tab.id" />
+                  </div>
+                  <div v-if="tab.document.response"
+                     class="flex flex-col flex-1 overflow-hidden"
+                     :class="{ 'w-1/2': isResponseSideBySide }">
+                    <Response :response="tab.document.response" />
+                  </div>
+                </div>
+              </div>
+            </template>
+          </HoppSmartTabs>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from "vue"
+// @ts-ignore 
+import { useService } from "dioc/vue"
+import { useI18n } from "vue-i18n"
+import { useToast } from "../composables/toast"
+import { SOAPTabService } from "../services/tab/soap"
+import { createSOAPNetworkRequestStream } from "../helpers/soap/soap-network"
+import { HoppSmartTabs, HoppSmartModal, HoppButtonSecondary, HoppButtonPrimary } from "@hoppscotch/ui"
+import { useSOAPHistoryStore } from "../newstore/SOAPHistory"
+import { getDefaultSOAPRequest } from "../helpers/soap/default"
+// Import the components
+import * as RequestImport from "../components/soap/Request.vue"
+import * as ResponseImport from "../components/soap/Response.vue"
+import * as HistoryImport from "../components/soap/History.vue"
+import * as CollectionsImport from "../components/soap/Collections.vue"
+import * as NewSOAPProjectModalImport from "../components/soap/NewSOAPProjectModal.vue"
+// Use namespace imports for components to handle both export styles
+const RequestComponent = RequestImport.default || RequestImport
+const ResponseComponent = ResponseImport.default || ResponseImport
+const HistoryComponent = HistoryImport.default || HistoryImport
+const CollectionsComponent = CollectionsImport.default || CollectionsImport
+const NewSOAPProjectModalComponent = NewSOAPProjectModalImport.default || NewSOAPProjectModalImport
+
+// Use imported components with aliases for the template
+const Request = RequestComponent
+const Response = ResponseComponent
+const History = HistoryComponent
+const Collections = CollectionsComponent
+const NewSOAPProjectModal = NewSOAPProjectModalComponent
+
+const { t } = useI18n()
+const toast = useToast()
+
+const tabService = useService(SOAPTabService)
+const sidebarTab = ref("history")
+
+// New project modal state
+const showNewProjectModal = ref(false)
+
+const tabs = tabService.tabs
+const selectedTabID = computed({
+  get: () => tabService.activeTabID?.value ?? (tabs.value[0]?.id ?? ""),
+  set: (value) => tabService.setActiveTab(value),
+})
+
+// Using a constant value since we may need to define the settings differently
+const isResponseSideBySide = ref(true)
+const showConfirmTabClose = ref(false)
+const tabToClose = ref("")
+
+const historyStore = useSOAPHistoryStore()
+
+// Tab management state
+const showSaveSampleModal = ref(false)
+const showTabMenu = ref(false)
+const showRenameModal = ref(false)
+const sampleName = ref("")
+const tabName = ref("")
+const currentMenuTabID = ref("")
+
+const addTab = () => {
+  // Create a properly typed document with a sequential name
+  const defaultRequest = getDefaultSOAPRequest()
+  
+  // Generate a sequential name
+  const tabCount = tabs.value.length + 1
+  defaultRequest.name = `SOAP Request ${tabCount}`
+  
+  // Create the new tab
+  const newTab = tabService.createNewTab({
+    type: "request",
+    request: defaultRequest,
+    isDirty: false,
+    optionTabPreference: "params",
+    response: null // Include response field to satisfy the type
+  })
+  
+  // Set the new tab as active
+  selectedTabID.value = newTab.id
+}
+
+const confirmTabClose = (tabID: string) => {
+  // If only one tab or no history, don't show confirmation
+  if (tabs.value.length <= 1 || historyStore.history.length === 0) {
+    tabService.closeTab(tabID)
+    return
+  }
+  // Check if tab has changes
+  const tab = tabs.value.find((tab: any) => tab.id === tabID)
+  if (tab && tab.document.isDirty) {
+    tabToClose.value = tabID
+    showConfirmTabClose.value = true
+  } else {
+    tabService.closeTab(tabID)
+  }
+}
+
+const closeTab = (tabID: string) => {
+  tabService.closeTab(tabID)
+  showConfirmTabClose.value = false
+}
+
+// The toggleResponseLayout function is removed as it's currently not used
+
+const sendRequest = (tabID: string) => {
+  const tab = tabs.value.find((tab: any) => tab.id === tabID)
+  if (!tab) return
+  
+  // Validate the request
+  if (!tab.document.request.endpoint) {
+    toast.error(t('error.empty_endpoint'))
+    tabService.setResponse(tabID, { 
+      type: 'fail', 
+      error: new Error('Empty endpoint') 
+    })
+    return null
+  }
+  
+  // Add necessary headers for SOAP requests if they don't exist
+  const headers = [...tab.document.request.headers]
+  const contentTypeExists = headers.some(h => h.key.toLowerCase() === 'content-type' && h.active)
+  
+  if (!contentTypeExists) {
+    // Add appropriate Content-Type header based on SOAP version
+    headers.push({
+      key: "Content-Type",
+      value: tab.document.request.soapVersion === "1.2" 
+        ? "application/soap+xml;charset=UTF-8" 
+        : "text/xml;charset=UTF-8",
+      active: true
+    })
+  }
+  
+  // For SOAP 1.1, add SOAPAction header if it doesn't exist and we have an operation
+  if (tab.document.request.soapVersion === "1.1" && tab.document.request.operation) {
+    const soapActionExists = headers.some(h => h.key.toLowerCase() === 'soapaction' && h.active)
+    if (!soapActionExists) {
+      headers.push({
+        key: "SOAPAction",
+        value: `"${tab.document.request.operation}"`,
+        active: true
+      })
+    }
+  }
+  
+  // Convert request to the right format for the network stream
+  const adaptedRequest = {
+    ...tab.document.request,
+    // Use updated headers
+    headers,
+    // Convert string attachments to proper format
+    attachments: tab.document.request.attachments?.map(att => ({
+      ...att,
+      content: att.content instanceof File ? att.content : (att.content instanceof ArrayBuffer ? att.content : null)
+    }))
+  }
+  
+  const [responseStream, cancelRequest] = createSOAPNetworkRequestStream(adaptedRequest)
+  
+  responseStream.subscribe({
+    next: (value: any) => {
+      tabService.setResponse(tabID, value)
+    },
+    error: (error: any) => {
+      tabService.setResponse(tabID, {
+        type: 'network_fail',
+        error
+      })
+    }
+  })
+  
+  return cancelRequest
+}
+
+// Function to open save sample modal
+const openSaveSampleModal = () => {
+  const tab = tabs.value.find((tab: any) => tab.id === selectedTabID.value)
+  if (tab) {
+    sampleName.value = `${tab.document.request.name} Sample`
+    showSaveSampleModal.value = true
+    showTabMenu.value = false
+  }
+}
+
+// Function to save current request as a sample
+const saveAsSample = () => {
+  if (!sampleName.value.trim()) {
+    return
+  }
+  
+  const newTab = tabService.saveRequestAsSample(selectedTabID.value, sampleName.value)
+  if (newTab) {
+    // Switch to the new sample tab
+    selectedTabID.value = newTab.id
+  }
+  
+  showSaveSampleModal.value = false
+}
+
+// Function to duplicate current tab
+const duplicateCurrentTab = () => {
+  const newTab = tabService.duplicateTab(selectedTabID.value)
+  if (newTab) {
+    // Switch to the new tab
+    selectedTabID.value = newTab.id
+  }
+  
+  showTabMenu.value = false
+}
+
+// Function to open rename tab modal
+const renameCurrentTab = () => {
+  const tab = tabs.value.find((tab: any) => tab.id === selectedTabID.value)
+  if (tab) {
+    tabName.value = tab.document.request.name
+    showRenameModal.value = true
+    showTabMenu.value = false
+  }
+}
+
+// Function to rename tab
+const renameTab = () => {
+  if (!tabName.value.trim()) {
+    return
+  }
+  
+  const tab = tabs.value.find((tab: any) => tab.id === selectedTabID.value)
+  if (tab) {
+    tabService.updateRequest(tab.id, { name: tabName.value })
+  }
+  
+  showRenameModal.value = false
+}
+
+// Open tab menu
+const openTabMenu = (tabID: string) => {
+  currentMenuTabID.value = tabID
+  showTabMenu.value = true
+}
+
+// Ensure we have at least one tab
+onMounted(() => {
+  console.log('[soap.vue] onMounted tabs:', tabs.value)
+  if (tabs.value.length === 0) {
+    console.log("No tabs found, creating a new one")
+    addTab()
+  }
+})
+
+// Set up sending requests when a tab needs to send
+watch(
+  () => tabs.value.map((tab: any) => tab.document.response),
+  () => {
+    console.log('[soap.vue] watch tabs:', tabs.value)
+    // Find tabs that have a loading response and send their requests
+    tabs.value.forEach((tab: any) => {
+      if (tab.document.response?.type === "loading") {
+        const cancelFn = sendRequest(tab.id)
+        if (cancelFn) {
+          // Store cancel function for later use
+          tab._cancelRequest = cancelFn
+        }
+      }
+    })
+  },
+  { deep: true }
+)
+</script>
+
+<!-- Export the component as default -->
+<script lang="ts">
+export default { name: 'SoapPage' }
+</script>

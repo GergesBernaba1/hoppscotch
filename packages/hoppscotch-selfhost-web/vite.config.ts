@@ -1,6 +1,5 @@
 import { defineConfig, loadEnv, normalizePath } from "vite"
 import { APP_INFO, META_TAGS } from "./meta"
-import { viteStaticCopy as StaticCopy } from "vite-plugin-static-copy"
 import generateSitemap from "vite-plugin-pages-sitemap"
 import HtmlConfig from "vite-plugin-html-config"
 import Vue from "@vitejs/plugin-vue"
@@ -19,6 +18,7 @@ import legacy from "@vitejs/plugin-legacy"
 import ImportMetaEnv from "@import-meta-env/unplugin"
 
 const ENV = loadEnv("development", path.resolve(__dirname, "../../"), ["VITE_"])
+const isProduction = process.env.NODE_ENV === "production"
 
 export default defineConfig({
   envPrefix: process.env.HOPP_ALLOW_RUNTIME_ENV ? "VITE_BUILDTIME_" : "VITE_",
@@ -30,10 +30,13 @@ export default defineConfig({
     "process.platform": '"browser"',
   },
   server: {
-    port: 3000,
+    port: 3200,
+    hmr: {
+      overlay: true
+    }
   },
   preview: {
-    port: 3000,
+    port: 3200
   },
   publicDir: path.resolve(__dirname, "../hoppscotch-common/public"),
   build: {
@@ -56,6 +59,8 @@ export default defineConfig({
       // TODO: Maybe leave ~ only for individual apps and not use on common
       "~": path.resolve(__dirname, "../hoppscotch-common/src"),
       "@hoppscotch/common": "@hoppscotch/common/src",
+      "@hoppscotch/data": path.resolve(__dirname, "../hoppscotch-data/src"),
+      "@hoppscotch/kernel": path.resolve(__dirname, "./src/lib/kernel-shim.ts"),
       "@composables": path.resolve(
         __dirname,
         "../hoppscotch-common/src/composables"
@@ -81,33 +86,45 @@ export default defineConfig({
     },
     dedupe: ["vue"],
   },
+  optimizeDeps: {
+    include: ['vue', 'vue-router', 'pinia']
+  },
   plugins: [
     Inspect(), // go to url -> /__inspect
     HtmlConfig({
       metas: META_TAGS(ENV),
     }),
-    Vue(),
+    Vue({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag.includes('-')
+        }
+      }
+    }),
     Pages({
       routeStyle: "nuxt",
-      dirs: ["../hoppscotch-common/src/pages", "./src/pages"],
+      dirs: [
+        {
+          dir: "../hoppscotch-common/src/pages",
+          baseRoute: ""
+        },
+        {
+          dir: "./src/pages",
+          baseRoute: ""
+        }
+      ],
       importMode: "async",
       onRoutesGenerated(routes) {
-        generateSitemap({
-          routes,
-          nuxtStyle: true,
-          allowRobots: true,
-          dest: ".sitemap-gen",
-          hostname: ENV.VITE_BASE_URL,
-        })
+        if (isProduction && routes && ENV.VITE_BASE_URL) {
+          generateSitemap({
+            routes,
+            nuxtStyle: true,
+            allowRobots: true,
+            dest: ".sitemap-gen",
+            hostname: ENV.VITE_BASE_URL || "http://localhost:3200",
+          })
+        }
       },
-    }),
-    StaticCopy({
-      targets: [
-        {
-          src: normalizePath(path.resolve(__dirname, "./.sitemap-gen/*")),
-          dest: normalizePath(path.resolve(__dirname, "./dist")),
-        },
-      ],
     }),
     Layouts({
       layoutsDirs: "../hoppscotch-common/src/layouts",
@@ -233,15 +250,15 @@ export default defineConfig({
         families: [
           {
             name: "Inter Variable",
-            variables: ["variable-full"],
+            weights: [400, 500, 600, 700],
           },
           {
             name: "Material Symbols Rounded Variable",
-            variables: ["variable-full"],
+            weights: [400],
           },
           {
             name: "Roboto Mono Variable",
-            variables: ["variable-full"],
+            weights: [400, 500, 600, 700],
           },
         ],
       },

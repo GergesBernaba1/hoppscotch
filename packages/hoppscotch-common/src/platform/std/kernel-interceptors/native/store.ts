@@ -1,6 +1,7 @@
 import { Service } from "dioc"
-import type { RelayRequest } from "@hoppscotch/kernel"
-import { Store } from "~/kernel/store"
+import { store } from "~/kernel/store"
+// import type { RelayRequest } from "@hoppscotch/kernel"
+type RelayRequest = any // Temporary fix for missing types
 import * as E from "fp-ts/Either"
 import {
   InputDomainSetting,
@@ -39,11 +40,11 @@ export class KernelInterceptorNativeStore extends Service {
   private domainSettings = new Map<string, InputDomainSetting>()
 
   async onServiceInit(): Promise<void> {
-    const initResult = await Store.init()
-    if (E.isLeft(initResult)) {
+    const initResult = await store.init()
+    if ((initResult as any)._tag === "Left") {
       console.error(
         "[NativeStore] Failed to initialize store:",
-        initResult.left
+        (initResult as any).left
       )
       return
     }
@@ -53,13 +54,13 @@ export class KernelInterceptorNativeStore extends Service {
   }
 
   private async loadStore(): Promise<void> {
-    const loadResult = await Store.get<StoredData>(
+    const loadResult = await store.get(
       STORE_NAMESPACE,
       STORE_KEYS.SETTINGS
     )
 
-    if (E.isRight(loadResult) && loadResult.right) {
-      const storedData = loadResult.right
+    if ((loadResult as any)._tag === "Right" && (loadResult as any).right) {
+      const storedData = (loadResult as any).right as StoredData
       this.domainSettings = new Map(Object.entries(storedData.domains))
     }
 
@@ -73,31 +74,31 @@ export class KernelInterceptorNativeStore extends Service {
   }
 
   private setupWatchers() {
-    Store.watch(STORE_NAMESPACE, STORE_KEYS.SETTINGS).on(
+    store.watch(STORE_NAMESPACE, STORE_KEYS.SETTINGS).on(
       "change",
-      async ({ value }) => {
+      async ({ value }: { value: any }) => {
         if (value) {
-          const store = value as StoredData
-          this.domainSettings = new Map(Object.entries(store.domains))
+          const storeData = value as StoredData
+          this.domainSettings = new Map(Object.entries(storeData.domains))
         }
       }
     )
   }
 
   private async persistStore(): Promise<void> {
-    const store: StoredData = {
+    const storeData: StoredData = {
       version: "v1",
       domains: Object.fromEntries(this.domainSettings),
       lastUpdated: new Date().toISOString(),
     }
 
-    const saveResult = await Store.set(
+    const saveResult = await store.set(
       STORE_NAMESPACE,
       STORE_KEYS.SETTINGS,
-      store
+      storeData
     )
-    if (E.isLeft(saveResult)) {
-      console.error("[AgentStore] Failed to save store:", saveResult.left)
+    if ((saveResult as any)._tag === "Left") {
+      console.error("[AgentStore] Failed to save store:", (saveResult as any).left)
     }
   }
 

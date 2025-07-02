@@ -51,11 +51,12 @@ import { Pane, Splitpanes } from "splitpanes"
 
 import "splitpanes/dist/splitpanes.css"
 
-import { useSetting } from "@composables/settings"
+import { useSetting } from "~/composables/settings"
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core"
+// @ts-ignore - TypeScript has wrong type information, the actual JS exports useService as named export
 import { useService } from "dioc/vue"
 import { computed, onMounted, ref, useSlots } from "vue"
-import { PersistenceService } from "~/services/persistence"
+import { PersistenceService } from "~/services/persistence/service"
 
 const SIDEBAR_ON_LEFT = useSetting("SIDEBAR_ON_LEFT")
 

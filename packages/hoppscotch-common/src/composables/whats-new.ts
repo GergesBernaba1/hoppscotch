@@ -2,7 +2,7 @@ import { toast as sonner } from "@hoppscotch/ui"
 import { markRaw } from "vue"
 import WhatsNewDialog from "~/components/app/WhatsNewDialog.vue"
 import { getService } from "~/modules/dioc"
-import { PersistenceService } from "~/services/persistence"
+import { PersistenceService } from "~/services/persistence/service"
 import { version as hoppscotchCommonPkgVersion } from "./../../package.json"
 
 export async function useWhatsNewDialog() {

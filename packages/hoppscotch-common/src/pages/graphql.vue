@@ -84,18 +84,19 @@
 </template>
 
 <script setup lang="ts">
-import { usePageHead } from "@composables/head"
-import { useI18n } from "@composables/i18n"
+import { usePageHead } from "../composables/head"
+import { useI18n } from "../composables/i18n"
+// @ts-ignore - TypeScript has wrong type information, the actual JS exports useService as named export
 import { useService } from "dioc/vue"
 import { computed, onBeforeUnmount, ref } from "vue"
-import { defineActionHandler } from "~/helpers/actions"
-import { connection, disconnect } from "~/helpers/graphql/connection"
-import { getDefaultGQLRequest } from "~/helpers/graphql/default"
-import { HoppGQLDocument } from "~/helpers/graphql/document"
-import { useExplorer } from "~/helpers/graphql/explorer"
-import { InspectionService } from "~/services/inspection"
-import { HoppTab } from "~/services/tab"
-import { GQLTabService } from "~/services/tab/graphql"
+import { defineActionHandler } from "../helpers/actions"
+import { connection, disconnect } from "../helpers/graphql/connection"
+import { getDefaultGQLRequest } from "../helpers/graphql/default"
+import { HoppGQLDocument } from "../helpers/graphql/document"
+import { useExplorer } from "../helpers/graphql/explorer"
+import { InspectionService } from "../services/inspection"
+import { HoppTab } from "../services/tab"
+import { GQLTabService } from "../services/tab/graphql"
 
 const t = useI18n()
 const tabs = useService(GQLTabService)

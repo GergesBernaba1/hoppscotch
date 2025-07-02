@@ -2,15 +2,15 @@ import { Service } from "dioc"
 import * as E from "fp-ts/Either"
 import { getService } from "~/modules/dioc"
 
-import { PersistenceService } from "~/services/persistence"
+import { PersistenceService } from "~/services/persistence/service"
 import { RESTTabService } from "~/services/tab/rest"
 import { GQLTabService } from "~/services/tab/graphql"
+import { SOAPTabService } from "~/services/tab/soap"
 import { KernelInterceptorService } from "~/services/kernel-interceptor.service"
 
 import { platform } from "~/platform"
 import { NativeKernelInterceptorService } from "~/platform/std/kernel-interceptors/native"
 
-import { performMigrations } from "~/helpers/migrations"
 import { initBackendGQLClient } from "~/helpers/backend/GQLClient"
 import { getKernelMode } from "@hoppscotch/kernel"
 
@@ -31,108 +31,120 @@ type InitEvent =
 export class InitializationService extends Service<InitEvent> {
   public static readonly ID = "INITIALIZATION_SERVICE"
 
-  private initState = {
-    store: false,
-    persistenceFirst: false,
-    tabs: false,
-    nativeKernelNetworking: false,
-    auth: false,
-    sync: false,
-    persistenceLater: false,
-    backendClient: false,
+  private _storeInitialized = false
+  private _persistenceInitialized = false
+  private _tabsInitialized = false
+  private _nativeKernelInitialized = false
+  private _authInitialized = false
+  private _backendClientInitialized = false
+  private _syncInitialized = false
+
+  constructor(container: any) {
+    super(container)
   }
 
-  private async initStore() {
+  async initStore() {
+    if (this._storeInitialized) return
+
     const persistenceService = getService(PersistenceService)
     const result = await persistenceService.init()
 
     if (E.isLeft(result)) {
+      console.error("Store initialization failed:", result.left)
       throw new Error(`Store initialization failed: ${result.left.message}`)
     }
 
-    this.initState.store = true
+    this._storeInitialized = true
     this.emit({ type: "STORE_READY" })
   }
 
-  private async initPersistenceFirst() {
-    if (!this.initState.store) {
+  async initPersistenceFirst() {
+    if (!this._storeInitialized) {
       throw new Error("Cannot initialize persistence before store")
     }
+
+    if (this._persistenceInitialized) return
 
     const persistenceService = getService(PersistenceService)
     await persistenceService.setupFirst()
 
-    this.initState.persistenceFirst = true
+    this._persistenceInitialized = true
     this.emit({ type: "PERSISTENCE_FIRST_READY" })
   }
 
-  private async initTabs() {
-    if (!this.initState.persistenceFirst) {
-      throw new Error("Cannot initialize tabs before persistence")
-    }
+  async initTabs() {
+    if (this._tabsInitialized) return
 
     const restTabService = getService(RESTTabService)
     const gqlTabService = getService(GQLTabService)
+    const soapTabService = getService(SOAPTabService)
 
-    await Promise.all([restTabService.init(), gqlTabService.init()])
+    await Promise.all([
+      restTabService.init(),
+      gqlTabService.init(),
+      soapTabService.init(),
+    ])
 
-    this.initState.tabs = true
+    this._tabsInitialized = true
     this.emit({ type: "TABS_READY" })
   }
 
-  private async initNativeKernelNetworking() {
+  async initNativeKernelNetworking() {
+    if (this._nativeKernelInitialized) return
+
     const interceptorService = getService(KernelInterceptorService)
     const nativeInterceptorService = getService(NativeKernelInterceptorService)
     interceptorService.register(nativeInterceptorService)
     interceptorService.setActive("native")
 
-    this.initState.nativeKernelNetworking = true
+    this._nativeKernelInitialized = true
     this.emit({ type: "NATIVE_KERNEL_NETWORKING_READY" })
   }
 
-  private async initAuth() {
+  async initAuth() {
+    if (this._authInitialized) return
+
     if (
       getKernelMode() === "desktop" &&
-      !this.initState.nativeKernelNetworking
+      !this._nativeKernelInitialized
     ) {
       throw new Error(
         "Cannot initialize auth on desktop before native networking"
       )
     }
 
-    if (!this.initState.persistenceFirst || !this.initState.tabs) {
+    if (!this._persistenceInitialized || !this._tabsInitialized) {
       throw new Error("Cannot initialize auth before persistence and tabs")
     }
 
     await platform.auth.performAuthInit()
 
-    this.initState.auth = true
+    this._authInitialized = true
     this.emit({ type: "AUTH_READY" })
   }
 
-  private async initBackendClient() {
+  async initBackendClient() {
+    if (this._backendClientInitialized) return
+
     initBackendGQLClient()
 
-    this.initState.backendClient = true
+    this._backendClientInitialized = true
     this.emit({ type: "BACKEND_CLIENT_READY" })
   }
 
-  private async initPersistenceLater() {
-    if (!this.initState.persistenceFirst) {
+  async initPersistenceLater() {
+    if (!this._persistenceInitialized) {
       throw new Error("Cannot initialize persistence before store")
     }
 
     const persistenceService = getService(PersistenceService)
     await persistenceService.setupLater()
 
-    this.initState.persistenceLater = true
     this.emit({ type: "PERSISTENCE_LATER_READY" })
   }
 
-  private async initSync() {
-    if (!this.initState.auth) {
-      throw new Error("Cannot initialize remaining services before auth")
-    }
+  async initSync() {
+    if (this._syncInitialized) return
 
     await Promise.all([
       platform.sync.settings.initSettingsSync(),
@@ -142,32 +154,40 @@ export class InitializationService extends Service<InitEvent> {
       platform.analytics?.initAnalytics(),
     ])
 
+    this._syncInitialized = true
     this.emit({ type: "SYNC_READY" })
   }
 
-  public async initPre() {
+  async init() {
     await this.initStore()
     await this.initPersistenceFirst()
-
-    if (getKernelMode() === "desktop") {
-      await this.initNativeKernelNetworking()
-    }
-
-    await this.initBackendClient()
     await this.initTabs()
-  }
-
-  public async initAuthAndSync() {
+    await this.initNativeKernelNetworking()
     await this.initAuth()
+    await this.initBackendClient()
     await this.initSync()
   }
 
-  public async initPost() {
-    await this.initPersistenceLater()
-    performMigrations()
+  async initPre() {
+    await this.initStore()
+    await this.initPersistenceFirst()
+    await this.initTabs()
+  }
+
+  async initPost() {
+    await this.initNativeKernelNetworking()
+    await this.initAuth()
+    await this.initBackendClient()
+    await this.initSync()
   }
 
   public isInitialized() {
-    return Object.values(this.initState).every(Boolean)
+    return this._storeInitialized &&
+      this._persistenceInitialized &&
+      this._tabsInitialized &&
+      this._nativeKernelInitialized &&
+      this._authInitialized &&
+      this._backendClientInitialized &&
+      this._syncInitialized
   }
 }

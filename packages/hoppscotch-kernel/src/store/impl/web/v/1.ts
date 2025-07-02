@@ -123,6 +123,8 @@ class BrowserStoreManager {
     }
 }
 
+const storeManager = BrowserStoreManager.new();
+
 export const implementation: VersionedAPI<StoreV1> = {
     version: { major: 1, minor: 0, patch: 0 },
     api: {
@@ -143,8 +145,7 @@ export const implementation: VersionedAPI<StoreV1> = {
 
         async set(namespace, key, value, options) {
             try {
-                const manager = BrowserStoreManager.new();
-                const existingData = await manager.getRaw(namespace, key);
+                const existingData = await storeManager.getRaw(namespace, key);
                 const createdAt = existingData?.metadata.createdAt || new Date().toISOString()
                 const updatedAt = new Date().toISOString()
 
@@ -161,7 +162,7 @@ export const implementation: VersionedAPI<StoreV1> = {
                     data: value,
                 };
 
-                await manager.set(namespace, key, storedData);
+                await storeManager.set(namespace, key, storedData);
                 return E.right(undefined);
             } catch (e) {
                 return E.left({
@@ -174,8 +175,7 @@ export const implementation: VersionedAPI<StoreV1> = {
 
         async get(namespace, key) {
             try {
-                const manager = BrowserStoreManager.new();
-                return E.right(await manager.get(namespace, key));
+                return E.right(await storeManager.get(namespace, key));
             } catch (e) {
                 return E.left({
                     kind: 'storage',
@@ -187,8 +187,7 @@ export const implementation: VersionedAPI<StoreV1> = {
 
         async has(namespace, key) {
             try {
-                const manager = BrowserStoreManager.new();
-                return E.right(await manager.has(namespace, key));
+                return E.right(await storeManager.has(namespace, key));
             } catch (e) {
                 return E.left({
                     kind: 'storage',
@@ -200,8 +199,7 @@ export const implementation: VersionedAPI<StoreV1> = {
 
         async remove(namespace, key) {
             try {
-                const manager = BrowserStoreManager.new();
-                return E.right(await manager.delete(namespace, key));
+                return E.right(await storeManager.delete(namespace, key));
             } catch (e) {
                 return E.left({
                     kind: 'storage',
@@ -213,8 +211,7 @@ export const implementation: VersionedAPI<StoreV1> = {
 
         async clear(namespace) {
             try {
-                const manager = BrowserStoreManager.new();
-                await manager.clear(namespace);
+                await storeManager.clear(namespace);
                 return E.right(undefined);
             } catch (e) {
                 return E.left({
@@ -227,8 +224,7 @@ export const implementation: VersionedAPI<StoreV1> = {
 
         async listNamespaces() {
             try {
-                const manager = BrowserStoreManager.new();
-                return E.right(await manager.listNamespaces());
+                return E.right(await storeManager.listNamespaces());
             } catch (e) {
                 return E.left({
                     kind: 'storage',
@@ -240,8 +236,7 @@ export const implementation: VersionedAPI<StoreV1> = {
 
         async listKeys(namespace) {
             try {
-                const manager = BrowserStoreManager.new();
-                return E.right(await manager.listKeys(namespace));
+                return E.right(await storeManager.listKeys(namespace));
             } catch (e) {
                 return E.left({
                     kind: 'storage',
@@ -252,8 +247,7 @@ export const implementation: VersionedAPI<StoreV1> = {
         },
 
         watch(namespace, key) {
-            const manager = BrowserStoreManager.new();
-            return manager.watch(namespace, key);
+            return storeManager.watch(namespace, key);
         },
     },
 };

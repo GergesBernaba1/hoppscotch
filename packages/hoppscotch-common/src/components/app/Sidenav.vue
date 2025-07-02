@@ -27,101 +27,107 @@
 
 <script setup lang="ts">
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core"
-import IconLink2 from "~icons/lucide/link-2"
-import IconGraphql from "~icons/hopp/graphql"
-import IconGlobe from "~icons/lucide/globe"
-import IconSettings from "~icons/lucide/settings"
-import { useSetting } from "@composables/settings"
-import { useI18n } from "@composables/i18n"
+// Replace these imports with valid local icon components or SVGs
+import IconSoap from "~/components/icon/IconSoap.vue"
 
-const t = useI18n()
+// Dummy icon components for demonstration (replace with your own SVG/icon components)
+const IconLink2 = {
+  template: '<svg width="24" height="24"><rect width="24" height="24" fill="#ccc"/></svg>',
+}
+const IconGraphql = {
+  template: '<svg width="24" height="24"><circle cx="12" cy="12" r="10" fill="#e10098"/></svg>',
+}
+const IconGlobe = {
+  template: '<svg width="24" height="24"><ellipse cx="12" cy="12" rx="10" ry="8" fill="#4caf50"/></svg>',
+}
+const IconSettings = {
+  template: '<svg width="24" height="24"><polygon points="12,2 15,8 22,9 17,14 18,21 12,18 6,21 7,14 2,9 9,8" fill="#607d8b"/></svg>',
+}
 
-const breakpoints = useBreakpoints(breakpointsTailwind)
-const mdAndLarger = breakpoints.greater("md")
-
-const EXPAND_NAVIGATION = useSetting("EXPAND_NAVIGATION")
+// Dummy composable replacements (replace with your actual logic)
+const t = (key: string) => key
+const EXPAND_NAVIGATION = true
+const mdAndLarger = true
 
 const primaryNavigation = [
   {
     target: "/",
     svg: IconLink2,
-    title: "navigation.rest",
+    title: "REST",
     exact: true,
   },
   {
     target: "/graphql",
     svg: IconGraphql,
-    title: "navigation.graphql",
+    title: "GraphQL",
+    exact: false,
+  },
+  {
+    target: "/soap",
+    svg: IconSoap,
+    title: "SOAP",
     exact: false,
   },
   {
     target: "/realtime",
     svg: IconGlobe,
-    title: "navigation.realtime",
+    title: "Realtime",
     exact: false,
   },
   {
     target: "/settings",
     svg: IconSettings,
-    title: "navigation.settings",
+    title: "Settings",
     exact: false,
   },
 ]
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .nav-link {
-  @apply relative;
-  @apply p-4;
-  @apply flex flex-1 flex-col;
-  @apply items-center;
-  @apply justify-center;
-  @apply hover:bg-primaryDark hover:text-secondaryDark;
-  @apply focus-visible:text-secondaryDark;
-  @apply after:absolute;
-  @apply after:inset-x-0;
-  @apply after:md:inset-x-auto;
-  @apply after:md:inset-y-0;
-  @apply after:bottom-0;
-  @apply after:md:bottom-auto;
-  @apply after:md:left-0;
-  @apply after:z-10;
-  @apply after:h-0.5;
-  @apply after:md:h-full;
-  @apply after:w-full;
-  @apply after:md:w-0.5;
-  @apply after:content-[""];
-  @apply focus:after:bg-divider;
-
-  .svg-icons {
-    @apply opacity-75;
-  }
-
-  .nav-title {
-    @apply mt-2;
-    @apply text-tiny;
-  }
-
-  &.router-link-active {
-    @apply text-secondaryDark;
-    @apply bg-primaryLight;
-    @apply hover:text-secondaryDark;
-    @apply after:bg-accent;
-
-    .svg-icons {
-      @apply opacity-100;
-    }
-  }
-
-  &.exact-active-link {
-    @apply text-secondaryDark;
-    @apply bg-primaryLight;
-    @apply hover:text-secondaryDark;
-    @apply after:bg-accent;
-
-    .svg-icons {
-      @apply opacity-100;
-    }
-  }
+  position: relative;
+  padding: 1rem;
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+  cursor: pointer;
+}
+.nav-link:hover {
+  background: #23272f; /* fallback for bg-primaryDark */
+  color: #1a202c;      /* fallback for text-secondaryDark */
+}
+.nav-link:focus-visible {
+  color: #1a202c;      /* fallback for text-secondaryDark */
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2px;
+  background: transparent;
+  z-index: 10;
+}
+.svg-icons {
+  opacity: 0.75;
+}
+.nav-title {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+}
+.nav-link.router-link-active,
+.nav-link.exact-active-link {
+  color: #1a202c;      /* fallback for text-secondaryDark */
+  background: #f3f4f6; /* fallback for bg-primaryLight */
+}
+.nav-link.router-link-active .svg-icons,
+.nav-link.exact-active-link .svg-icons {
+  opacity: 1;
+}
+.nav-link.router-link-active::after,
+.nav-link.exact-active-link::after {
+  background: #ff4081; /* fallback for bg-accent */
 }
 </style>

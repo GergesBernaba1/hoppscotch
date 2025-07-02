@@ -1,0 +1,5 @@
+/**
+ * Defines the structure of a SOAP response
+ * This type is re-exported from @hoppscotch/data
+ */
+export { HoppSOAPResponse } from "@hoppscotch/data"

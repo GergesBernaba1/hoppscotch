@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions 
+  xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" 
+  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" 
+  xmlns:tns="http://petstore.example.com/" 
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+  name="PetStoreService" 
+  targetNamespace="http://petstore.example.com/">
+
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://petstore.example.com/">
+      <xsd:element name="GetPetRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="petId" type="xsd:int"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetPetResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="pet" type="tns:Pet"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="AddPetRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="pet" type="tns:Pet"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="AddPetResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="success" type="xsd:boolean"/>
+            <xsd:element name="id" type="xsd:int"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:complexType name="Pet">
+        <xsd:sequence>
+          <xsd:element name="id" type="xsd:int"/>
+          <xsd:element name="name" type="xsd:string"/>
+          <xsd:element name="type" type="xsd:string"/>
+          <xsd:element name="age" type="xsd:int"/>
+        </xsd:sequence>
+      </xsd:complexType>
+    </xsd:schema>
+  </wsdl:types>
+
+  <wsdl:message name="GetPetInput">
+    <wsdl:part name="parameters" element="tns:GetPetRequest"/>
+  </wsdl:message>
+  <wsdl:message name="GetPetOutput">
+    <wsdl:part name="parameters" element="tns:GetPetResponse"/>
+  </wsdl:message>
+  <wsdl:message name="AddPetInput">
+    <wsdl:part name="parameters" element="tns:AddPetRequest"/>
+  </wsdl:message>
+  <wsdl:message name="AddPetOutput">
+    <wsdl:part name="parameters" element="tns:AddPetResponse"/>
+  </wsdl:message>
+
+  <wsdl:portType name="PetStorePortType">
+    <wsdl:operation name="GetPet">
+      <wsdl:input message="tns:GetPetInput"/>
+      <wsdl:output message="tns:GetPetOutput"/>
+    </wsdl:operation>
+    <wsdl:operation name="AddPet">
+      <wsdl:input message="tns:AddPetInput"/>
+      <wsdl:output message="tns:AddPetOutput"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <wsdl:binding name="PetStoreSOAP" type="tns:PetStorePortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="GetPet">
+      <soap:operation soapAction="http://petstore.example.com/GetPet"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="AddPet">
+      <soap:operation soapAction="http://petstore.example.com/AddPet"/>
+      <wsdl:input>
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <wsdl:service name="PetStoreService">
+    <wsdl:port binding="tns:PetStoreSOAP" name="PetStoreSOAP">
+      <soap:address location="http://petstore.example.com/soap"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

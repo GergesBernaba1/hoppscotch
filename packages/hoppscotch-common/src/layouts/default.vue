@@ -84,7 +84,7 @@ import { hookKeybindingsListener } from "~/helpers/keybindings"
 import { applySetting, toggleSetting } from "~/newstore/settings"
 import { platform } from "~/platform"
 import { HoppSpotlightSessionEventData } from "~/platform/analytics"
-import { PersistenceService } from "~/services/persistence"
+import { PersistenceService } from "~/services/persistence/service"
 import { SpotlightService } from "~/services/spotlight"
 import { UIExtensionService } from "~/services/ui-extension.service"
 

@@ -4,9 +4,11 @@ import { computed } from "vue"
 import { getDefaultRESTRequest } from "~/helpers/rest/default"
 import { HoppRESTSaveContext, HoppTabDocument } from "~/helpers/rest/document"
 import { getService } from "~/modules/dioc"
-import { PersistenceService, STORE_KEYS } from "../persistence"
+import { PersistenceService } from "../persistence/service"
+import { STORE_KEYS } from "../persistence/constants"
 import { TabService } from "./tab"
-import { PersistableTabState } from "."
+import { HoppTab } from "."
+import { HoppRESTRequest } from "@hoppscotch/data"
 
 export class RESTTabService extends TabService<HoppTabDocument> {
   public static readonly ID = "REST_TAB_SERVICE"
@@ -63,11 +65,9 @@ export class RESTTabService extends TabService<HoppTabDocument> {
     }),
   }))
 
-  protected async loadPersistedState(): Promise<PersistableTabState<HoppTabDocument> | null> {
+  protected async loadPersistedState(): Promise<any | null> {
     const persistenceService = getService(PersistenceService)
-    const savedState = await persistenceService.getNullable<
-      PersistableTabState<HoppTabDocument>
-    >(STORE_KEYS.REST_TABS)
+    const savedState = await persistenceService.getNullable(STORE_KEYS.REST_TABS)
     return savedState
   }
 

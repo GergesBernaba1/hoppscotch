@@ -1,4 +1,4 @@
-import { HoppRESTRequest } from "@hoppscotch/data"
+import type { HoppRESTRequest } from "@hoppscotch/data"
 
 /**
  * We use the save context to figure out
@@ -23,7 +23,7 @@ export type HoppRequestSaveContext =
       /**
        * Current request
        */
-      req?: HoppRESTRequest
+      req?: any // TODO: Fix type when versioned entity types are properly exported
     }
   | {
       /**
@@ -45,5 +45,5 @@ export type HoppRequestSaveContext =
       /**
        * Current request
        */
-      req?: HoppRESTRequest
+      req?: any // TODO: Fix type when versioned entity types are properly exported
     }

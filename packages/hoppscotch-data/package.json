@@ -19,9 +19,14 @@
   },
   "exports": {
     ".": {
-      "type": "./dist/index.d.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/hoppscotch-data.js",
       "require": "./dist/hoppscotch-data.cjs"
+    },
+    "./soap": {
+      "types": "./dist/soap.d.ts",
+      "import": "./dist/soap.js",
+      "require": "./dist/soap.cjs"
     }
   },
   "repository": {

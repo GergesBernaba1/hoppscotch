@@ -2,7 +2,7 @@ import { Service } from "dioc"
 import { ref } from "vue"
 import * as E from "fp-ts/Either"
 import axios from "axios"
-import { Store } from "~/kernel/store"
+import { store } from "~/kernel/store"
 import type { PluginRequest, PluginResponse } from "@hoppscotch/kernel"
 import { x25519 } from "@noble/curves/ed25519"
 import { base16 } from "@scure/base"
@@ -58,7 +58,7 @@ export class KernelInterceptorAgentStore extends Service {
   public isRegistering = ref(false)
 
   override async onServiceInit() {
-    const initResult = await Store.init()
+    const initResult = await store.init()
     if (E.isLeft(initResult)) {
       console.error("[AgentStore] Failed to initialize store:", initResult.left)
       return
@@ -69,16 +69,16 @@ export class KernelInterceptorAgentStore extends Service {
   }
 
   private async loadStore(): Promise<void> {
-    const loadResult = await Store.get<StoredData>(
+    const loadResult = await store.get(
       STORE_NAMESPACE,
       STORE_KEYS.SETTINGS
     )
 
     if (E.isRight(loadResult) && loadResult.right) {
-      const store = loadResult.right
-      this.domainSettings = new Map(Object.entries(store.domains))
-      this.authKey.value = store.auth.key
-      this.sharedSecretB16.value = store.auth.sharedSecret
+      const storedData = loadResult.right as StoredData
+      this.domainSettings = new Map(Object.entries(storedData.domains))
+      this.authKey.value = storedData.auth.key
+      this.sharedSecretB16.value = storedData.auth.sharedSecret
     }
 
     if (!this.domainSettings.has(KernelInterceptorAgentStore.GLOBAL_DOMAIN)) {
@@ -91,21 +91,21 @@ export class KernelInterceptorAgentStore extends Service {
   }
 
   private setupWatchers() {
-    Store.watch(STORE_NAMESPACE, STORE_KEYS.SETTINGS).on(
+    store.watch(STORE_NAMESPACE, STORE_KEYS.SETTINGS).on(
       "change",
-      async ({ value }) => {
+      async ({ value }: { value: unknown }) => {
         if (value) {
-          const store = value as StoredData
-          this.domainSettings = new Map(Object.entries(store.domains))
-          this.authKey.value = store.auth.key
-          this.sharedSecretB16.value = store.auth.sharedSecret
+          const storedData = value as StoredData
+          this.domainSettings = new Map(Object.entries(storedData.domains))
+          this.authKey.value = storedData.auth.key
+          this.sharedSecretB16.value = storedData.auth.sharedSecret
         }
       }
     )
   }
 
   private async persistStore(): Promise<void> {
-    const store: StoredData = {
+    const storedData: StoredData = {
       version: "v1",
       auth: {
         key: this.authKey.value,
@@ -115,10 +115,10 @@ export class KernelInterceptorAgentStore extends Service {
       lastUpdated: new Date().toISOString(),
     }
 
-    const saveResult = await Store.set(
+    const saveResult = await store.set(
       STORE_NAMESPACE,
       STORE_KEYS.SETTINGS,
-      store
+      storedData
     )
     if (E.isLeft(saveResult)) {
       console.error("[AgentStore] Failed to save store:", saveResult.left)

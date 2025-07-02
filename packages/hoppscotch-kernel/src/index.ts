@@ -70,6 +70,19 @@ export function initKernel(mode?: KernelMode): KernelAPI {
   }
 }
 
+export function getModule<K extends keyof KernelAPI>(
+  name: K
+): NonNullable<KernelAPI[K]> {
+  const kernel = window.__KERNEL__
+  if (!kernel?.[name]) throw new Error(`Kernel ${name} not initialized`)
+  return kernel[name]
+}
+
+export function getStoreImpl() {
+  const mode = getKernelMode()
+  return mode === 'desktop' ? DESKTOP_STORE_IMPLS.v1.api : WEB_STORE_IMPLS.v1.api
+}
+
 export type {
   SaveFileWithDialogOptions,
   SaveFileResponse,

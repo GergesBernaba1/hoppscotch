@@ -9,7 +9,7 @@ import {
   AuthPlatformDef,
   HoppUser,
 } from "@hoppscotch/common/platform/auth"
-import { PersistenceService } from "@hoppscotch/common/services/persistence"
+import { PersistenceService } from "@hoppscotch/common/services/persistence/service"
 
 import { getAllowedAuthProviders, updateUserDisplayName } from "./api"
 

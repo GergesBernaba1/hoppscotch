@@ -7,8 +7,16 @@ export default defineConfig({
     outDir: "./dist",
     emptyOutDir: true,
     lib: {
-      entry: resolve(__dirname, "src/index.ts"),
-      fileName: "hoppscotch-data",
+      entry: {
+        index: resolve(__dirname, "src/index.ts"),
+        soap: resolve(__dirname, "src/soap/index.ts"),
+      },
+      fileName: (format, entryName) => {
+        if (entryName === "index") {
+          return `hoppscotch-data.${format === "es" ? "js" : "cjs"}`
+        }
+        return `${entryName}.${format === "es" ? "js" : "cjs"}`
+      },
       formats: ["es", "cjs"],
     },
   },

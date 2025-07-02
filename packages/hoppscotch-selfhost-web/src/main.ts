@@ -1,6 +1,17 @@
 import { ref } from "vue"
 import { listen } from "@tauri-apps/api/event"
 import { createHoppApp } from "@hoppscotch/common"
+import { initKernel } from "@lib/kernel-shim"
+import { getService } from "@hoppscotch/common/modules/dioc"
+import { InitializationService } from "@hoppscotch/common/services/initialization.service"
+import { PersistenceService } from "@hoppscotch/common/services/persistence"
+import { Container } from "dioc"
+import { RESTTabService } from "@hoppscotch/common/services/tab/rest"
+import { GQLTabService } from "@hoppscotch/common/services/tab/graphql"
+import { SOAPTabService } from "@hoppscotch/common/services/tab/soap"
+import { SecretEnvironmentService } from "@hoppscotch/common/services/secret-environment.service"
+import { KernelInterceptorService } from "@hoppscotch/common/services/kernel-interceptor.service"
+import { DebugService } from "@hoppscotch/common/services/debug.service"
 
 import { def as webAuth } from "@platform/auth/web"
 import { def as webEnvironments } from "@platform/environments/web"
@@ -18,8 +29,8 @@ import { def as stdBackendDef } from "@hoppscotch/common/platform/std/backend"
 import { stdFooterItems } from "@hoppscotch/common/platform/std/ui/footerItem"
 import { stdSupportOptionItems } from "@hoppscotch/common/platform/std/ui/supportOptionsItem"
 import { InfraPlatform } from "@platform/infra/infra.platform"
-import { getKernelMode } from "@hoppscotch/kernel"
 import { kernelIO } from "@hoppscotch/common/platform/std/kernel-io"
+import { getKernelMode } from "@lib/kernel-mode"
 
 import { NativeKernelInterceptorService } from "@hoppscotch/common/platform/std/kernel-interceptors/native"
 import { AgentKernelInterceptorService } from "@hoppscotch/common/platform/std/kernel-interceptors/agent"
@@ -66,6 +77,23 @@ const getInterceptors = (mode: Platform) =>
   }))
 
 async function initApp() {
+  // Initialize kernel FIRST!
+  initKernel(kernelMode)
+
+  // Initialize container
+  const container = new Container()
+  
+  // Bind core services first
+  container.bind(DebugService)
+  container.bind(PersistenceService)
+  container.bind(InitializationService)
+  
+  // Initialize persistence service
+  const persistenceService = container.bind(PersistenceService)
+  await persistenceService.init()
+  await persistenceService.setupFirst()
+
+  // Initialize app with core services
   await createHoppApp("#app", {
     ui: {
       additionalFooterMenuItems: stdFooterItems,
@@ -99,6 +127,30 @@ async function initApp() {
     infra: InfraPlatform,
     backend: stdBackendDef,
   })
+
+  // Bind remaining services after app initialization
+  container.bind(RESTTabService)
+  container.bind(GQLTabService)
+  container.bind(SOAPTabService)
+  container.bind(SecretEnvironmentService)
+  container.bind(KernelInterceptorService)
+  
+  // Bind kernel interceptors
+  if (kernelMode === "web") {
+    container.bind(BrowserKernelInterceptorService)
+    container.bind(ProxyKernelInterceptorService)
+    container.bind(AgentKernelInterceptorService)
+    container.bind(ExtensionKernelInterceptorService)
+  } else {
+    container.bind(NativeKernelInterceptorService)
+    container.bind(ProxyKernelInterceptorService)
+  }
+
+  // Initialize services
+  const initService = container.bind(InitializationService)
+  await initService.initStore()
+  await initService.initPersistenceFirst()
+  await initService.initPersistenceLater()
 
   if (kernelMode === "desktop") {
     listen("will-enter-fullscreen", () => {

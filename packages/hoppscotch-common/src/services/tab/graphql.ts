@@ -1,12 +1,14 @@
-import { isEqual } from "lodash-es"
-import { getDefaultGQLRequest } from "~/helpers/graphql/default"
-import { HoppGQLDocument, HoppGQLSaveContext } from "~/helpers/graphql/document"
-import { TabService } from "./tab"
-import { computed } from "vue"
 import { Container } from "dioc"
+import { isEqual } from "lodash-es"
+import { computed } from "vue"
+import { getDefaultGQLRequest } from "~/helpers/graphql/default"
+import { HoppGQLSaveContext, HoppGQLDocument } from "~/helpers/graphql/document"
 import { getService } from "~/modules/dioc"
-import { PersistenceService, STORE_KEYS } from "../persistence"
-import { PersistableTabState } from "."
+import { PersistenceService } from "../persistence/service"
+import { STORE_KEYS } from "../persistence/constants"
+import { TabService } from "./tab"
+import { HoppTab } from "."
+import { HoppGQLRequest } from "@hoppscotch/data"
 
 export class GQLTabService extends TabService<HoppGQLDocument> {
   public static readonly ID = "GQL_TAB_SERVICE"
@@ -44,11 +46,9 @@ export class GQLTabService extends TabService<HoppGQLDocument> {
     }),
   }))
 
-  protected async loadPersistedState(): Promise<PersistableTabState<HoppGQLDocument> | null> {
+  protected async loadPersistedState(): Promise<any | null> {
     const persistenceService = getService(PersistenceService)
-    const savedState = await persistenceService.getNullable<
-      PersistableTabState<HoppGQLDocument>
-    >(STORE_KEYS.GQL_TABS)
+    const savedState = await persistenceService.getNullable(STORE_KEYS.GQL_TABS)
     return savedState
   }
 

@@ -8,7 +8,7 @@ import { HoppModule } from "."
 import languages from "../../languages.json"
 
 import { throwError } from "~/helpers/functional/error"
-import { PersistenceService } from "~/services/persistence"
+import { PersistenceService } from "~/services/persistence/service"
 import { getService } from "./dioc"
 
 import FALLBACK_LANG_MESSAGES from "../../locales/en.json"
@@ -123,7 +123,7 @@ export const changeAppLanguage = async (locale: string) => {
   i18nInstance.global.setLocaleMessage(locale, localeData)
 
   // TODO: Look into the type issues here
-  i18nInstance.global.locale.value = locale
+  i18nInstance.global.locale = locale
 
   await persistenceService.setLocalConfig("locale", locale)
 }

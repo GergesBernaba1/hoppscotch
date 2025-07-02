@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WSDL Import Features Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .feature {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .feature h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .checkbox-wrapper {
+            margin: 10px 0;
+        }
+        .checkbox-wrapper label {
+            margin-left: 8px;
+            cursor: pointer;
+        }
+        .demo-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .code-sample {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .success {
+            color: #28a745;
+        }
+        .feature-tag {
+            background-color: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧼 SOAP WSDL Import Features</h1>
+        <p>This demo showcases the new enhanced WSDL import functionality with three powerful features:</p>
+
+        <div class="feature">
+            <h3><span class="feature-tag">Feature 1</span> Create Sample Requests for All Operations</h3>
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="sampleRequests" checked>
+                <label for="sampleRequests">✅ Create sample requests for all operations with realistic sample data</label>
+            </div>
+            <div class="demo-section">
+                <strong>What this creates:</strong>
+                <ul>
+                    <li>Individual requests for each WSDL operation</li>
+                    <li>Pre-filled SOAP envelopes with sample parameters</li>
+                    <li>Proper SOAP headers and content-type settings</li>
+                    <li>Operation documentation extracted from WSDL</li>
+                </ul>
+                <div class="code-sample">Example generated SOAP envelope:
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"&gt;
+  &lt;soap:Header/&gt;
+  &lt;soap:Body&gt;
+    &lt;tns:GetWeatherRequest&gt;
+      &lt;!-- Sample parameters for GetWeather --&gt;
+      &lt;parameter1&gt;sample_value_1&lt;/parameter1&gt;
+      &lt;parameter2&gt;sample_value_2&lt;/parameter2&gt;
+    &lt;/tns:GetWeatherRequest&gt;
+  &lt;/soap:Body&gt;
+&lt;/soap:Envelope&gt;</div>
+            </div>
+        </div>
+
+        <div class="feature">
+            <h3><span class="feature-tag">Feature 2</span> Create TestSuite for the Imported WSDL</h3>
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="testSuite">
+                <label for="testSuite">🧪 Create automated test suite for validating SOAP responses</label>
+            </div>
+            <div class="demo-section">
+                <strong>What this creates:</strong>
+                <ul>
+                    <li>Separate test collection with automated test scripts</li>
+                    <li>Response validation tests (status codes, XML structure)</li>
+                    <li>SOAP fault detection tests</li>
+                    <li>Performance and response time tests</li>
+                </ul>
+                <div class="code-sample">Example test script:
+// Test script for GetWeather operation
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Response is valid XML", function () {
+    const responseText = pm.response.text();
+    pm.expect(responseText).to.include('&lt;?xml');
+    pm.expect(responseText).to.include('soap:Envelope');
+});
+
+pm.test("No SOAP fault", function () {
+    const responseText = pm.response.text();
+    pm.expect(responseText).to.not.include('soap:Fault');
+});</div>
+            </div>
+        </div>
+
+        <div class="feature">
+            <h3><span class="feature-tag">Feature 3</span> Create Web Service Simulation</h3>
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="simulation">
+                <label for="simulation">🎭 Create mock/simulation endpoints for testing without real service</label>
+            </div>
+            <div class="demo-section">
+                <strong>What this creates:</strong>
+                <ul>
+                    <li>Mock endpoints for each operation</li>
+                    <li>Realistic mock responses based on WSDL schema</li>
+                    <li>Simulation scripts for offline testing</li>
+                    <li>Configurable mock data for different test scenarios</li>
+                </ul>
+                <div class="code-sample">Example mock response:
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"&gt;
+  &lt;soap:Body&gt;
+    &lt;tns:GetWeatherResponse&gt;
+      &lt;result&gt;
+        &lt;status&gt;success&lt;/status&gt;
+        &lt;message&gt;Mock response for GetWeather&lt;/message&gt;
+        &lt;data&gt;
+          &lt;temperature&gt;22&lt;/temperature&gt;
+          &lt;humidity&gt;65&lt;/humidity&gt;
+          &lt;condition&gt;Sunny&lt;/condition&gt;
+        &lt;/data&gt;
+      &lt;/result&gt;
+    &lt;/tns:GetWeatherResponse&gt;
+  &lt;/soap:Body&gt;
+&lt;/soap:Envelope&gt;</div>
+            </div>
+        </div>
+
+        <div class="feature">
+            <h3>🗂️ File Upload Support</h3>
+            <div class="demo-section">
+                <strong>Enhanced WSDL Import Options:</strong>
+                <ul>
+                    <li>✅ Import WSDL from URL (existing)</li>
+                    <li>✅ Import WSDL from file upload (.wsdl, .xml files)</li>
+                    <li>✅ Automatic collection naming from filename</li>
+                    <li>✅ File validation and error handling</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; padding: 20px; background-color: #e7f3ff; border-radius: 5px;">
+            <h3>💡 How to Use</h3>
+            <ol>
+                <li>Go to SOAP Collections</li>
+                <li>Click "From WSDL" button</li>
+                <li>Choose between URL or File upload</li>
+                <li>Enter your WSDL URL or upload a .wsdl/.xml file</li>
+                <li>Enter a collection name</li>
+                <li><strong>Select the features you want:</strong>
+                    <ul>
+                        <li>✅ Create sample requests (recommended)</li>
+                        <li>🧪 Create test suite (for quality assurance)</li>
+                        <li>🎭 Create simulation (for offline testing)</li>
+                    </ul>
+                </li>
+                <li>Click "Create Collection"</li>
+                <li>Enjoy your automatically generated SOAP requests with enhanced functionality!</li>
+            </ol>
+        </div>
+
+        <div class="success" style="text-align: center; margin-top: 20px; font-size: 18px;">
+            ✨ Enhanced WSDL Import Features Successfully Implemented! ✨
+        </div>
+    </div>
+
+    <script>
+        // Simple demo interactivity
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const feature = this.closest('.feature');
+                if (this.checked) {
+                    feature.style.borderColor = '#28a745';
+                    feature.style.backgroundColor = '#f8fff8';
+                } else {
+                    feature.style.borderColor = '#ddd';
+                    feature.style.backgroundColor = 'white';
+                }
+            });
+        });
+
+        // Initialize with checked state
+        document.getElementById('sampleRequests').dispatchEvent(new Event('change'));
+    </script>
+</body>
+</html>

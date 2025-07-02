@@ -26,13 +26,12 @@ export async function createHoppApp(
   // Initialize core services before app mounting
   const initService = getService(InitializationService)
 
-  await initService.initPre()
-
   try {
-    await initService.initAuthAndSync()
-  } catch {
+    await initService.initPre()
+  } catch (e) {
     console.error(
-      "Failed connecting to the backend, make sure the service is running and accessible on the network"
+      "Failed to initialize core services:",
+      e instanceof Error ? e.message : "Unknown error"
     )
   }
 

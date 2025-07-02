@@ -1,4 +1,4 @@
-import { PersistenceService } from "~/services/persistence"
+import { PersistenceService } from "~/services/persistence/service"
 import {
   OauthAuthService,
   PersistedOAuthConfig,

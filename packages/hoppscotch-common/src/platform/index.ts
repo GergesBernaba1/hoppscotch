@@ -1,4 +1,4 @@
-import { ServiceClassInstance } from "dioc"
+import { ServiceClassInstance, Container } from "dioc"
 import { Ref } from "vue"
 import { HoppModule } from "~/modules"
 import { AnalyticsPlatformDef } from "./analytics"
@@ -20,6 +20,7 @@ import { UIPlatformDef } from "./ui"
 import { BackendPlatformDef } from "./backend"
 import { OrganizationPlatformDef } from "./organization"
 import { KernelIO } from "./kernel-io"
+// const soapService = new SOAPTabService(container) // Removed direct instantiation
 
 export type PlatformDef = {
   ui?: UIPlatformDef
@@ -73,6 +74,18 @@ export type PlatformDef = {
 
 export let platform: PlatformDef
 
-export function setPlatformDef(def: PlatformDef) {
+export async function setPlatformDef(def: PlatformDef) {
+  // Initialize platform first
   platform = def
+
+  // Initialize services after platform is set
+  if (!def.addedServices) {
+    def.addedServices = []
+  }
+
+  // Create and initialize SOAP tab service
+  const container = new Container()
+  // const soapService = new SOAPTabService(container) // Removed direct instantiation
+  // await soapService.init() // Removed reference
+  // def.addedServices.push(soapService as unknown as ServiceClassInstance<unknown>) // Removed reference
 }

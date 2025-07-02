@@ -8,6 +8,7 @@
 import { useI18n } from "~/composables/i18n"
 import { useToast } from "~/composables/toast"
 
+// @ts-ignore - TypeScript has wrong type information, the actual JS exports useService as named export
 import { useService } from "dioc/vue"
 import * as E from "fp-ts/Either"
 import { onMounted } from "vue"
@@ -19,7 +20,7 @@ import {
   PersistedOAuthConfig,
   routeOAuthRedirect,
 } from "~/services/oauth/oauth.service"
-import { PersistenceService } from "~/services/persistence"
+import { PersistenceService } from "~/services/persistence/service"
 import { GQLTabService } from "~/services/tab/graphql"
 
 const t = useI18n()
@@ -69,7 +70,7 @@ function translateOAuthRedirectError(error: string) {
 
 onMounted(async () => {
   const localOAuthTempConfig =
-    await persistenceService.getLocalConfig("oauth_temp_config")
+    persistenceService.getLocalConfig("oauth_temp_config")
 
   if (!localOAuthTempConfig) {
     toast.error(t("authorization.oauth.something_went_wrong_on_oauth_redirect"))
@@ -85,7 +86,7 @@ onMounted(async () => {
   const tokenInfo = await routeOAuthRedirect()
 
   if (E.isLeft(tokenInfo)) {
-    toast.error(translateOAuthRedirectError(tokenInfo.left))
+    toast.error(translateOAuthRedirectError(tokenInfo.left as string))
     router.push(source === "REST" ? "/" : "/graphql")
     return
   }
@@ -102,7 +103,7 @@ onMounted(async () => {
       authConfig.refresh_token = tokenInfo.right.refresh_token
     }
 
-    await persistenceService.setLocalConfig(
+    persistenceService.setLocalConfig(
       "oauth_temp_config",
       JSON.stringify(authConfig)
     )
@@ -117,17 +118,17 @@ onMounted(async () => {
   const tabService = source === "GraphQL" ? gqlTabs : restTabs
 
   if (
-    tabService.currentActiveTab.value.document.request.auth.authType ===
+    (tabService.currentActiveTab.value.document as any).request?.auth?.authType ===
     "oauth-2"
   ) {
-    tabService.currentActiveTab.value.document.request.auth.grantTypeInfo.token =
+    (tabService.currentActiveTab.value.document as any).request.auth.grantTypeInfo.token =
       tokenInfo.right.access_token
 
     if (
-      tabService.currentActiveTab.value.document.request.auth.grantTypeInfo
+      (tabService.currentActiveTab.value.document as any).request.auth.grantTypeInfo
         .grantType === "AUTHORIZATION_CODE"
     ) {
-      tabService.currentActiveTab.value.document.request.auth.grantTypeInfo.refreshToken =
+      (tabService.currentActiveTab.value.document as any).request.auth.grantTypeInfo.refreshToken =
         tokenInfo.right.refresh_token
     }
 

@@ -3,7 +3,7 @@ import { usePreferredDark, useStorage } from "@vueuse/core"
 import { App, Ref, computed, reactive, watch } from "vue"
 
 import type { HoppBgColor } from "~/newstore/settings"
-import { PersistenceService } from "~/services/persistence"
+import { PersistenceService } from "~/services/persistence/service"
 import { HoppModule } from "."
 import { getService } from "./dioc"
 

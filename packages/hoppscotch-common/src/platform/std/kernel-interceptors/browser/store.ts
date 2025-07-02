@@ -1,5 +1,5 @@
 import { Service } from "dioc"
-import { Store } from "~/kernel/store"
+import { store } from "~/kernel/store"
 import * as E from "fp-ts/Either"
 
 const STORE_NAMESPACE = "interceptors.browser.v1"
@@ -24,7 +24,7 @@ export class KernelInterceptorBrowserStore extends Service {
   private settings: BrowserSettings = { ...DEFAULT_SETTINGS }
 
   async onServiceInit(): Promise<void> {
-    const initResult = await Store.init()
+    const initResult = await store.init()
     if (E.isLeft(initResult)) {
       console.error(
         "[BrowserStore] Failed to initialize store:",
@@ -37,7 +37,7 @@ export class KernelInterceptorBrowserStore extends Service {
   }
 
   private async loadSettings(): Promise<void> {
-    const loadResult = await Store.get<StoredData>(
+    const loadResult = await store.get<StoredData>(
       STORE_NAMESPACE,
       SETTINGS_KEY
     )

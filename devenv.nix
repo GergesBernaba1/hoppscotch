@@ -44,7 +44,7 @@ in {
 
   env = {
     APP_GREET = "Hoppscotch";
-    DATABASE_URL = "postgresql://postgres:testpass@localhost:5432/hoppscotch?connect_timeout=300";
+    DATABASE_URL = "Server=45.241.60.20;Port=5432;Database=hoppscotch;Username=postgres;Password=qrO4y935JTxd";
     DOCKER_BUILDKIT = "1";
     COMPOSE_DOCKER_CLI_BUILD = "1";
   } // lib.optionalAttrs pkgs.stdenv.isLinux {

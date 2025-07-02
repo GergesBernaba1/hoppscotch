@@ -14,6 +14,7 @@
     "lib": ["ESNext", "DOM"],
     "skipLibCheck": true,
     "noUnusedLocals": true,
+    "outDir": "./dist",
     "paths": {
       "~/*": ["./src/*"],
       "@composables/*": ["./src/composables/*"],
@@ -30,7 +31,8 @@
       "vite-plugin-pages/client",
       "vite-plugin-vue-layouts/client",
       "vite-plugin-pwa/client",
-      "./src/types/kernel.d.ts"
+      "./src/types/kernel.d.ts",
+      "./src/types/unplugin-icons.d.ts"
     ]
   },
   "include": [

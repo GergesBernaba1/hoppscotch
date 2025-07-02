@@ -1,8 +1,8 @@
-import { KernelAPI } from "@hoppscotch/kernel"
+import { KernelAPI, getStoreImpl as kernelGetStoreImpl } from "@hoppscotch/kernel"
 
 export { Io } from "./io"
 export { Relay } from "./relay"
-export { Store } from "./store"
+export { store } from "./store"
 
 export const getModule = <K extends keyof KernelAPI>(
   name: K
@@ -11,3 +11,5 @@ export const getModule = <K extends keyof KernelAPI>(
   if (!kernel?.[name]) throw new Error(`Kernel ${name} not initialized`)
   return kernel[name]
 }
+
+export const getStoreImpl = kernelGetStoreImpl

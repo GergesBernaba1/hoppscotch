@@ -2,6 +2,7 @@ import { App } from "vue"
 import { pipe } from "fp-ts/function"
 import * as A from "fp-ts/Array"
 import { RouteLocationNormalized, Router } from "vue-router"
+import soapModule from "./soap"
 
 export type HoppModule = {
   /**
@@ -55,5 +56,6 @@ export const HOPP_MODULES = pipe(
   import.meta.glob("@modules/*.ts", { eager: true }),
   Object.values,
   A.map(({ default: defaultVal }) => defaultVal as HoppModule),
-  A.filter((module) => !module.deprecated)
+  A.filter((module) => !module.deprecated),
+  A.concat([soapModule])
 )

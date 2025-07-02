@@ -117,23 +117,24 @@
 </template>
 
 <script setup lang="ts">
-import { useI18n } from "@composables/i18n"
 import {
   GQLHeader,
-  HoppCollection,
   HoppGQLAuth,
   HoppRESTAuth,
   HoppRESTHeaders,
 } from "@hoppscotch/data"
 import { refAutoReset, useVModel } from "@vueuse/core"
+// @ts-ignore - TypeScript has wrong type information, the actual JS exports useService as named export
 import { useService } from "dioc/vue"
 import { clone } from "lodash-es"
 import { computed, ref, watch } from "vue"
 import { useToast } from "~/composables/toast"
+import { useI18n } from "~/composables/i18n"
 
 import { HoppInheritedProperty } from "~/helpers/types/HoppInheritedProperties"
-import { copyToClipboard } from "~/helpers/utils/clipboard"
-import { PersistenceService } from "~/services/persistence"
+import { copyToClipboard } from "~/helpers/utils/clipboard" 
+import { PersistenceService } from "~/services/persistence/service"
+// Importing icons (these work with unplugin-icons)
 import IconCheck from "~icons/lucide/check"
 import IconCopy from "~icons/lucide/copy"
 import IconHelpCircle from "~icons/lucide/help-circle"
@@ -141,6 +142,18 @@ import { RESTOptionTabs } from "../http/RequestOptions.vue"
 
 const persistenceService = useService(PersistenceService)
 const t = useI18n()
+
+// Define HoppCollection type locally as it's not properly exported from @hoppscotch/data
+type HoppCollection = {
+  v: number
+  name: string
+  folders?: HoppCollection[]
+  requests?: any[]
+  auth?: HoppCollectionAuth
+  headers?: HoppCollectionHeaders
+  _ref_id?: string
+  id?: string
+}
 
 export type EditingProperties = {
   collection: Partial<HoppCollection> | null

@@ -10,7 +10,7 @@ import { listen } from "@tauri-apps/api/event"
 import { getService } from "@hoppscotch/common/modules/dioc"
 import { parseBodyAsJSON } from "@hoppscotch/common/helpers/functional/json"
 import { AuthEvent, AuthPlatformDef } from "@hoppscotch/common/platform/auth"
-import { PersistenceService } from "@hoppscotch/common/services/persistence"
+import { PersistenceService } from "@hoppscotch/common/services/persistence/service"
 import { KernelInterceptorService } from "@hoppscotch/common/services/kernel-interceptor.service"
 
 import Login from "@platform-components/Login.vue"

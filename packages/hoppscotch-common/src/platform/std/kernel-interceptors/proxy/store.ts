@@ -1,5 +1,5 @@
 import { Service } from "dioc"
-import { Store } from "~/kernel/store"
+import { store } from "~/kernel/store"
 import { settingsStore } from "~/newstore/settings"
 import * as E from "fp-ts/Either"
 
@@ -30,17 +30,17 @@ export class KernelInterceptorProxyStore extends Service {
   private settings: ProxySettings = { ...DEFAULT_SETTINGS }
 
   async onServiceInit(): Promise<void> {
-    const initResult = await Store.init()
+    const initResult = await store.init()
     if (E.isLeft(initResult)) {
       console.error("[ProxyStore] Failed to initialize store:", initResult.left)
       return
     }
 
-    await this.loadSettings()
+    await this.loadStore()
 
-    Store.watch(STORE_NAMESPACE, SETTINGS_KEY).on(
+    store.watch(STORE_NAMESPACE, SETTINGS_KEY).on(
       "change",
-      async ({ value }) => {
+      async ({ value }: { value: unknown }) => {
         if (value) {
           const storedData = value as StoredData
           this.settings = storedData.settings
@@ -49,31 +49,31 @@ export class KernelInterceptorProxyStore extends Service {
     )
   }
 
-  private async loadSettings(): Promise<void> {
-    const loadResult = await Store.get<StoredData>(
+  private async loadStore(): Promise<void> {
+    const loadResult = await store.get(
       STORE_NAMESPACE,
       SETTINGS_KEY
     )
 
     if (E.isRight(loadResult) && loadResult.right) {
-      const storedData = loadResult.right
+      const storedData = loadResult.right as StoredData
       this.settings = {
         ...DEFAULT_SETTINGS,
         ...storedData.settings,
       }
     } else {
-      await this.persistSettings()
+      await this.persistStore()
     }
   }
 
-  private async persistSettings(): Promise<void> {
+  private async persistStore(): Promise<void> {
     const storedData: StoredData = {
       version: "v1",
       settings: this.settings,
       lastUpdated: new Date().toISOString(),
     }
 
-    const saveResult = await Store.set(
+    const saveResult = await store.set(
       STORE_NAMESPACE,
       SETTINGS_KEY,
       storedData
@@ -90,7 +90,7 @@ export class KernelInterceptorProxyStore extends Service {
       ...settings,
     }
 
-    await this.persistSettings()
+    await this.persistStore()
   }
 
   public getSettings(): ProxySettings {
@@ -99,6 +99,6 @@ export class KernelInterceptorProxyStore extends Service {
 
   public async resetSettings(): Promise<void> {
     this.settings = { ...DEFAULT_SETTINGS }
-    await this.persistSettings()
+    await this.persistStore()
   }
 }

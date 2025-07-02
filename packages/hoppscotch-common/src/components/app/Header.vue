@@ -84,8 +84,9 @@
               workspaceSelectorFlagEnabled && !currentUser,
           }"
         >
+        <!--for login button-->
           <div
-            v-if="currentUser === null"
+            v-if="false"
             class="inline-flex items-center space-x-2"
           >
             <HoppButtonSecondary

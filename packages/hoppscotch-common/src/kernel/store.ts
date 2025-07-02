@@ -4,43 +4,24 @@ import type {
   StoreEvents,
   StoreEventEmitter,
 } from "@hoppscotch/kernel"
-import * as E from "fp-ts/Either"
-import { getModule } from "."
+import { getStoreImpl } from "@hoppscotch/kernel"
 
-export const Store = (() => {
-  const module = () => getModule("store")
+// Use a function to always get the latest store implementation
+function impl() {
+  return getStoreImpl()
+}
 
-  return {
-    capabilities: () => module().capabilities,
-    init: () => module().init(),
-    set: (
-      namespace: string,
-      key: string,
-      value: unknown,
-      options?: StorageOptions
-    ): Promise<E.Either<StoreError, void>> =>
-      module().set(namespace, key, value, options),
-    get: <T>(
-      namespace: string,
-      key: string
-    ): Promise<E.Either<StoreError, T | undefined>> =>
-      module().get<T>(namespace, key),
-    remove: (
-      namespace: string,
-      key: string
-    ): Promise<E.Either<StoreError, boolean>> =>
-      module().remove(namespace, key),
-    clear: (namespace?: string): Promise<E.Either<StoreError, void>> =>
-      module().clear(namespace),
-    has: (
-      namespace: string,
-      key: string
-    ): Promise<E.Either<StoreError, boolean>> => module().has(namespace, key),
-    listNamespaces: (): Promise<E.Either<StoreError, string[]>> =>
-      module().listNamespaces(),
-    listKeys: (namespace: string): Promise<E.Either<StoreError, string[]>> =>
-      module().listKeys(namespace),
-    watch: (namespace: string, key: string): StoreEventEmitter<StoreEvents> =>
-      module().watch(namespace, key),
-  } as const
-})()
+export const store = {
+  get capabilities() { return impl().capabilities },
+  init: (...args: any[]) => impl().init(...args),
+  set: (...args: any[]) => impl().set(...args),
+  get: (...args: any[]) => impl().get(...args),
+  has: (...args: any[]) => impl().has(...args),
+  remove: (...args: any[]) => impl().remove(...args),
+  clear: (...args: any[]) => impl().clear(...args),
+  listNamespaces: (...args: any[]) => impl().listNamespaces(...args),
+  listKeys: (...args: any[]) => impl().listKeys(...args),
+  watch: (...args: any[]) => impl().watch(...args),
+}
+
+export type { StorageOptions, StoreError, StoreEvents, StoreEventEmitter }

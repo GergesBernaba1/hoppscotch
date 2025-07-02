@@ -213,7 +213,7 @@ import {
   PersistedOAuthConfig,
   grantTypesInvolvingRedirect,
 } from "~/services/oauth/oauth.service"
-import { PersistenceService } from "~/services/persistence"
+import { PersistenceService } from "~/services/persistence/service"
 import { GQLTabService } from "~/services/tab/graphql"
 import { RESTTabService } from "~/services/tab/rest"
 import IconCircle from "~icons/lucide/circle"

@@ -136,7 +136,7 @@ import IconArrowLeft from "~icons/lucide/arrow-left"
 
 import { useService } from "dioc/vue"
 import { LoginItemDef } from "~/platform/auth"
-import { PersistenceService } from "~/services/persistence"
+import { PersistenceService } from "~/services/persistence/service"
 
 import * as E from "fp-ts/Either"
 

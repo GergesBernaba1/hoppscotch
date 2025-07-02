@@ -183,15 +183,15 @@ export default defineConfig({
         families: [
           {
             name: "Inter Variable",
-            variables: ["variable-full"],
+            variable: true
           },
           {
             name: "Material Symbols Rounded Variable",
-            variables: ["variable-full"],
+            variable: true
           },
           {
             name: "Roboto Mono Variable",
-            variables: ["variable-full"],
+            variable: true
           },
         ],
       },

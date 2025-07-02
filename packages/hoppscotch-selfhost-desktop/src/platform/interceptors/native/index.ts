@@ -1,5 +1,5 @@
 import { CookieJarService } from "@hoppscotch/common/services/cookie-jar.service"
-import { Interceptor, InterceptorError, RequestRunResult } from "@hoppscotch/common/services/interceptor.service"
+import { Interceptor, InterceptorError, RequestRunResult, NetworkResponse } from "@hoppscotch/common/services/interceptor.service"
 import { Service } from "dioc"
 import { cloneDeep } from "lodash-es"
 import { invoke } from "@tauri-apps/api/tauri"
@@ -7,7 +7,7 @@ import * as E from "fp-ts/Either"
 import SettingsNativeInterceptor from "../../../components/settings/NativeInterceptor.vue"
 import { ref, watch } from "vue"
 import { z } from "zod"
-import { PersistenceService } from "@hoppscotch/common/services/persistence"
+import { PersistenceService } from "@hoppscotch/common/services/persistence/service"
 import { CACertStore, ClientCertsStore, ClientCertStore, StoredClientCert } from "./persisted-data"
 
 
@@ -122,26 +122,39 @@ async function processBody(axiosReq: AxiosRequestConfig): Promise<BodyDef | null
   if (axiosReq.data instanceof FormData) {
     const entries: FormDataEntry[] = []
 
-    for (const [key, value] of axiosReq.data.entries()) {
+    // Manually get all entries from FormData
+    const formData = axiosReq.data;
+    
+    // Create a function to process each entry
+    const processEntry = async (key: string, value: string | Blob) => {
       if (typeof value === "string") {
         entries.push({
           key,
           value: { Text: value }
-        })
-      } else {
-        const mime = value.type !== "" ? value.type : "application/octet-stream"
-
+        });
+      } else if (value instanceof Blob) { 
+        const mime = value.type !== "" ? value.type : "application/octet-stream";
+        
         entries.push({
           key,
           value: {
             File: {
-              filename: value.name,
+              filename: 'file', // Default name if File is a Blob without name
               data: Array.from(new Uint8Array(await value.arrayBuffer())),
               mime,
             }
           }
-        })
+        });
       }
+    };
+    
+    // Use forEach method if available or process manually
+    if (typeof formData.forEach === 'function') {
+      const promises: Promise<void>[] = [];
+      formData.forEach((value, key) => {
+        promises.push(processEntry(key, value));
+      });
+      await Promise.all(promises);
     }
 
     return { FormData: entries }
@@ -204,7 +217,8 @@ async function convertToRequestDef(
     parameters: Object.entries(axiosReq.params as Record<string, string> ?? {})
       .map(([key, value]): KeyValuePair => ({ key, value })),
     body: await processBody(axiosReq),
-    root_cert_bundle_files: caCertificates.map((cert) => Array.from(cert.certificate)),
+    // Flatten the array to ensure it's a single-level array of numbers
+    root_cert_bundle_files: caCertificates.flatMap((cert) => Array.from(cert.certificate)),
     validate_certs: validateCerts,
     client_cert: clientCert ? convertClientCertToDefCert(clientCert) : null,
     proxy: proxyInfo
@@ -264,7 +278,7 @@ export class NativeInterceptorService extends Service implements Interceptor {
   public supportsBinaryContentType = false
 
   private cookieJarService = this.bind(CookieJarService)
-  private persistenceService: PersistenceService = this.bind(PersistenceService)
+  private persistenceService = this.bind(PersistenceService)
 
   private reqIDTicker = 0
 
@@ -434,6 +448,9 @@ export class NativeInterceptorService extends Service implements Interceptor {
     )
 
     if (relevantCookies.length > 0) {
+      if (!processedReq.headers) {
+        processedReq.headers = {}
+      }
       processedReq.headers["Cookie"] = relevantCookies
         .map((cookie) => `${cookie.name!}=${cookie.value!}`)
         .join(";")
@@ -469,7 +486,10 @@ export class NativeInterceptorService extends Service implements Interceptor {
             status: response.status,
             statusText: response.status_text,
             data: new Uint8Array(response.data).buffer,
+            // Make sure our response conforms to the AxiosResponse structure
+            request: processedReq,
             config: {
+              ...processedReq, // Include the original request config
               timeData: {
                 startTime: response.time_start_ms,
                 endTime: response.time_end_ms
@@ -478,7 +498,7 @@ export class NativeInterceptorService extends Service implements Interceptor {
             additional: {
               multiHeaders: response.headers
             }
-          })
+          } as NetworkResponse)
         } catch (e) {
 
           if (typeof e === "object" && (e as any)["RequestCancelled"]) {

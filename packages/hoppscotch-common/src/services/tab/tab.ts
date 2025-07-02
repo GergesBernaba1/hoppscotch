@@ -114,7 +114,11 @@ export abstract class TabService<Doc>
 
   public getActiveTabs(): Readonly<ComputedRef<HoppTab<Doc>[]>> {
     return shallowReadonly(
-      computed(() => this.tabOrdering.value.map((x) => this.tabMap.get(x)!))
+      computed(() => 
+        this.tabOrdering.value
+          .map((x) => this.tabMap.get(x))
+          .filter((tab): tab is HoppTab<Doc> => tab !== undefined)
+      )
     )
   }
 
@@ -194,13 +198,18 @@ export abstract class TabService<Doc>
 
   public persistableTabState = computed<PersistableTabState<Doc>>(() => ({
     lastActiveTabID: this.currentTabID.value,
-    orderedDocs: this.tabOrdering.value.map((tabID) => {
-      const tab = this.tabMap.get(tabID)! // tab ordering is guaranteed to have value for this key
-      return {
-        tabID: tab.id,
-        doc: tab.document,
-      }
-    }),
+    orderedDocs: this.tabOrdering.value
+      .map((tabID) => {
+        const tab = this.tabMap.get(tabID)
+        // Skip undefined tabs
+        if (!tab) return null
+        
+        return {
+          tabID: tab.id,
+          doc: tab.document,
+        }
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null)
   }))
 
   public getTabsRefTo(func: (tab: HoppTab<Doc>) => boolean) {
@@ -216,4 +225,10 @@ export abstract class TabService<Doc>
       if (!this.tabMap.has(id)) return id
     }
   }
+
+  public tabs = computed(() => 
+    this.tabOrdering.value
+      .map((id) => this.tabMap.get(id))
+      .filter((tab): tab is HoppTab<Doc> => tab !== undefined)
+  )
 }

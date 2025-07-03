@@ -286,10 +286,97 @@
                 </div>
               </div>
               <div class="bg-primaryLight border border-dividerLight rounded">
-                <div v-if="response?.body" class="p-2 max-h-96 overflow-auto">
-                  <pre class="text-sm font-mono whitespace-pre-wrap">{{ typeof response.body === 'string' ? response.body : 'Binary response data' }}</pre>
+                <!-- Show error message if present -->
+                <div v-if="response?.error" class="p-2 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
+                  <div class="font-bold mb-1">Error:</div>
+                  <div class="whitespace-pre-wrap">{{ getErrorMessage(response.error) }}</div>
                 </div>
-                <div v-else class="p-4 text-center text-secondaryLight">
+                
+                <!-- Show body if present - with enhanced view for full content -->
+                <div v-if="response?.body" 
+                     ref="responseContainer"
+                     class="p-2 relative overflow-auto transition-all duration-300" 
+                     :class="{'max-h-96': !showFullResponse, 'h-auto': showFullResponse}"
+                     :style="showFullResponse ? 'max-height: none;' : ''"
+                     @keydown.alt.shift.f.prevent="formatResponseXML"
+                     @keydown.ctrl.alt.c.prevent="copyResponseToClipboard"
+                     @keydown.alt.shift.e.prevent="toggleFullResponse"
+                     tabindex="0"
+                >
+                  <!-- Gradient overlay to indicate truncated content -->
+                  <div v-if="!showFullResponse && isResponseOverflowing" 
+                       class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-primaryLight to-transparent pointer-events-none">
+                  </div>
+                  
+                  <pre 
+                    class="text-sm font-mono whitespace-pre-wrap"
+                    :class="{'soap-highlighted': typeof response.body === 'string' && response.body.includes('<')}"
+                  >{{ typeof response.body === 'string' ? response.body : 'Binary response data' }}</pre>
+                  
+                  <!-- Quick expand button shown directly in the content area when truncated -->
+                  <button v-if="!showFullResponse && isResponseOverflowing"
+                          class="absolute bottom-2 right-2 py-1 px-3 bg-accent text-white rounded shadow-md opacity-90 hover:opacity-100 text-xs font-medium"
+                          @click="toggleFullResponse">
+                    Show Full Response
+                  </button>
+                </div>
+                
+                <!-- Controls for response body -->
+                <div v-if="response?.body && typeof response.body === 'string'" 
+                     class="p-2 bg-primaryLight border-t border-dividerLight flex flex-wrap items-center justify-between">
+                  <!-- Left side: Response size info -->
+                  <div class="text-xs text-secondaryLight flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>{{ formatSize(response.body.length) }}</span>
+                    <span v-if="isResponseOverflowing && !showFullResponse" 
+                          class="ml-2 text-yellow-500 font-medium">
+                      (Truncated)
+                    </span>
+                  </div>
+                  
+                  <!-- Right side: Action buttons -->
+                  <div class="flex items-center space-x-2">
+                    <button 
+                      class="flex items-center py-1 px-2 text-sm border border-dividerLight hover:border-accent rounded-md"
+                      @click="formatResponseXML"
+                      title="Format XML (Alt+Shift+F)"
+                    >
+                      <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      Format
+                    </button>
+                    <button 
+                      class="flex items-center py-1 px-2 text-sm border border-dividerLight hover:border-accent rounded-md"
+                      @click="copyResponseToClipboard"
+                      title="Copy to clipboard (Ctrl+Alt+C)"
+                    >
+                      <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                      </svg>
+                      Copy
+                    </button>
+                    <button 
+                      class="flex items-center py-1 px-2 text-sm font-medium border border-accent text-accent rounded-md hover:bg-accent hover:bg-opacity-10"
+                      @click="toggleFullResponse"
+                      title="Toggle full view (Alt+Shift+E)"
+                    >
+                      <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path :d="showFullResponse 
+                          ? 'M19 9l-7 7-7-7' 
+                          : 'M9 5l7 7-7 7'" 
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      {{ showFullResponse ? 'Collapse' : 'Expand' }}
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Show a message if no body and no error -->
+                <div v-if="!response?.body && !response?.error" class="p-4 text-center text-secondaryLight">
                   <p>No response body</p>
                 </div>
               </div>
@@ -356,6 +443,9 @@ const bodyCollapsed = ref(props.initialBodyCollapsed !== undefined ? props.initi
 const responseCollapsed = ref(props.initialResponseCollapsed !== undefined ? props.initialResponseCollapsed : false);
 const responseHeadersCollapsed = ref(true);
 const isEndpointFocused = ref(false);
+const showFullResponse = ref(false); // Controls whether the response body is shown in full or truncated
+const isResponseOverflowing = ref(false); // Tracks if the response content is larger than the container
+const responseContainer = ref<HTMLElement | null>(null);
 
 // When expanded state changes, emit event for parent component
 watch(expanded, (newValue) => {
@@ -373,16 +463,69 @@ watch(() => props.request.body, (newVal) => {
   }
 });
 
+// Method to check if response content overflows container
+const checkResponseOverflow = () => {
+  if (responseContainer.value && typeof props.response?.body === 'string') {
+    const container = responseContainer.value;
+    // Check if the content height exceeds the container's max height
+    isResponseOverflowing.value = container.scrollHeight > container.clientHeight;
+  } else {
+    isResponseOverflowing.value = false;
+  }
+};
+
+// Format byte size to human-readable format
+const formatSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} bytes`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+// Toggle full response view and announce to screen readers
+const toggleFullResponse = () => {
+  showFullResponse.value = !showFullResponse.value;
+  // Announce action to screen readers
+  const message = showFullResponse.value ? 'Full response shown' : 'Response collapsed';
+  toast.info(message, { duration: 1000 });
+};
+
 // Watch for CORS issues in responses and update UI to show proxy options
 watch(() => props.response, (newResponse) => {
-  if (newResponse?.meta?.corsDetected || 
-      (newResponse?.type === 'network_fail' && newResponse?.error?.message?.includes('CORS'))) {
-    // Show the proxy options UI when a CORS issue is detected
-    proxyOptionsVisible.value = true;
-    console.log('CORS detected in response. Showing proxy options UI.');
+  // Reset full response view when getting a new response
+  showFullResponse.value = false;
+  
+  // Check for response overflow after the DOM has updated
+  setTimeout(checkResponseOverflow, 100);
+  
+  try {
+    if (newResponse?.meta?.corsDetected || 
+        (newResponse?.type === 'network_fail' && newResponse?.error?.message?.includes('CORS')) ||
+        (typeof newResponse?.body === 'string' && 
+         (newResponse.body.includes('Access-Control-Allow-Origin') || 
+          newResponse.body.includes('cross-origin')))) {
+      
+      // Show the proxy options UI when a CORS issue is detected
+      proxyOptionsVisible.value = true;
+      console.log('CORS detected in response. Showing proxy options UI.');
+      
+      // Don't automatically enable proxy mode - let the user decide
+      toast.info('CORS restrictions detected. You can use the proxy option if needed.');
+      
+      // Check if we're working with a known service that always needs a proxy
+      if (props.request?.endpoint?.includes('dneonline.com')) {
+        toast.info('Calculator service typically requires a CORS proxy for browser access.');
+      }
+    }
     
-    // Don't automatically enable proxy mode - let the user decide
-    toast.info('CORS restrictions detected. You can use the proxy option if needed.');
+    // Also check for the specific "Cannot read properties of undefined" error
+    if (newResponse?.type === 'network_fail' && 
+        newResponse?.error?.message?.includes('Cannot read properties of undefined')) {
+      console.error('Detected "Cannot read properties" error, most likely due to proxy response handling issue');
+      toast.error('Error processing response. Try toggling the CORS proxy option.');
+      proxyOptionsVisible.value = true;
+    }
+  } catch (watchError) {
+    console.error('Error in response watcher:', watchError);
   }
 }, { deep: true });
 
@@ -468,6 +611,9 @@ const getErrorMessage = (error?: { message?: string }): string => {
   else if (errorMsg.includes('SOAP-ENV:Server') || errorMsg.includes('soap:Server')) {
     return 'SOAP Server Error: The SOAP service encountered an error while processing your request.';
   }
+  else if (errorMsg.includes('Cannot read properties of undefined') || errorMsg.includes('of null')) {
+    return 'Processing Error: There was an error handling the SOAP response. Try toggling the CORS proxy option or check the console for details.';
+  }
   else if (errorMsg.includes('timeout') || errorMsg.includes('Timeout')) {
     return 'Request timed out. The SOAP service did not respond within the expected time.';
   }
@@ -492,58 +638,108 @@ onMounted(() => {
     
     // Don't automatically show proxy options - wait for user to encounter CORS errors first
     proxyOptionsVisible.value = false;
+    console.log("ImprovedSoapUI mounted with endpoint:", props.request.endpoint);
+  } else {
+    console.log("ImprovedSoapUI mounted but no endpoint defined yet");
   }
 });
 
 const toggleProxy = () => {
-  if (!props.request || !props.request.endpoint) return;
+  if (!props.request || !props.request.endpoint) {
+    toast.error('No endpoint configured. Please enter an endpoint URL first.');
+    useProxyMode.value = false;
+    return;
+  }
   
-  // Directly update the endpoint with or without proxy instead of opening edit dialog
-  if (useProxyMode.value) {
-    // Enable proxy mode - directly modify the endpoint
-    const currentEndpoint = props.request.endpoint;
-    
-    // Skip if endpoint already uses a proxy
-    if (currentEndpoint.includes('corsproxy.io') || 
-        currentEndpoint.includes('cors-anywhere') ||
-        currentEndpoint.includes('allorigins.win')) {
-      toast.info('Endpoint already using a CORS proxy');
-      return;
-    }
-    
-    // Create new endpoint with proxy
-    const proxyEndpoint = "https://corsproxy.io/?" + encodeURIComponent(currentEndpoint);
-    
-    // Update the endpoint
-    emit('update:endpoint', proxyEndpoint);
-    toast.success('CORS proxy enabled for this endpoint');
-    
-    console.log(`Proxy mode enabled. Endpoint changed from ${currentEndpoint} to ${proxyEndpoint}`);
-  } else {
-    // Disable proxy mode - revert to original URL if using a proxy
-    const currentEndpoint = props.request.endpoint;
-    
-    if (currentEndpoint.includes('corsproxy.io')) {
-      // Extract original URL from corsproxy.io endpoint
-      const originalUrl = decodeURIComponent(currentEndpoint.replace('https://corsproxy.io/?', ''));
+  try {
+    // Directly update the endpoint with or without proxy instead of opening edit dialog
+    if (useProxyMode.value) {
+      // Enable proxy mode - directly modify the endpoint
+      const currentEndpoint = props.request.endpoint;
       
-      // Update the endpoint to remove the proxy
-      emit('update:endpoint', originalUrl);
-      toast.success('CORS proxy disabled, using direct endpoint');
+      // Skip if endpoint already uses a proxy
+      if (currentEndpoint.includes('corsproxy.io') || 
+          currentEndpoint.includes('cors-anywhere') ||
+          currentEndpoint.includes('allorigins.win')) {
+        toast.info('Endpoint already using a CORS proxy');
+        return;
+      }
       
-      console.log(`Proxy mode disabled. Endpoint changed from ${currentEndpoint} to ${originalUrl}`);
-    } else if (currentEndpoint.includes('cors-anywhere')) {
-      // Handle cors-anywhere proxy
-      const originalUrl = currentEndpoint.replace('https://cors-anywhere.herokuapp.com/', '');
-      emit('update:endpoint', originalUrl);
-      toast.success('CORS proxy disabled, using direct endpoint');
-    } else if (currentEndpoint.includes('allorigins.win')) {
-      // Handle allorigins proxy
-      const originalUrl = decodeURIComponent(currentEndpoint.replace('https://api.allorigins.win/raw?url=', ''));
-      emit('update:endpoint', originalUrl);
-      toast.success('CORS proxy disabled, using direct endpoint');
+      // Create new endpoint with proxy - try multiple options if one fails
+      let proxyEndpoint;
+      
+      try {
+        // First choice is corsproxy.io
+        proxyEndpoint = "https://corsproxy.io/?" + encodeURIComponent(currentEndpoint);
+      } catch (encodeError) {
+        // If encoding fails, try allorigins.win
+        console.warn("Error encoding URL for corsproxy.io:", encodeError);
+        try {
+          proxyEndpoint = "https://api.allorigins.win/raw?url=" + encodeURIComponent(currentEndpoint);
+        } catch (encodeError2) {
+          // If that also fails, use a simple proxy without encoding
+          console.warn("Error encoding URL for allorigins.win:", encodeError2);
+          proxyEndpoint = "https://cors-anywhere.herokuapp.com/" + currentEndpoint;
+        }
+      }
+      
+      // Update the endpoint
+      emit('update:endpoint', proxyEndpoint);
+      toast.success('CORS proxy enabled for this endpoint');
+      
+      console.log(`Proxy mode enabled. Endpoint changed from ${currentEndpoint} to ${proxyEndpoint}`);
     } else {
-      toast.info('Endpoint is not using a known CORS proxy');
+      // Disable proxy mode - revert to original URL if using a proxy
+      const currentEndpoint = props.request.endpoint;
+      let originalUrl = currentEndpoint; // Default to current if no proxy detected
+      let proxyDetected = false;
+      
+      try {
+        if (currentEndpoint.includes('corsproxy.io')) {
+          // Extract original URL from corsproxy.io endpoint
+          originalUrl = decodeURIComponent(currentEndpoint.replace('https://corsproxy.io/?', ''));
+          proxyDetected = true;
+        } else if (currentEndpoint.includes('cors-anywhere')) {
+          // Handle cors-anywhere proxy
+          originalUrl = currentEndpoint.replace('https://cors-anywhere.herokuapp.com/', '');
+          proxyDetected = true;
+        } else if (currentEndpoint.includes('allorigins.win')) {
+          // Handle allorigins proxy
+          originalUrl = decodeURIComponent(currentEndpoint.replace('https://api.allorigins.win/raw?url=', ''));
+          proxyDetected = true;
+        }
+        
+        // Extra validation for the extracted URL - make sure it's still a valid URL
+        if (proxyDetected) {
+          // Basic validation - should at least have http/https
+          if (!originalUrl.startsWith('http://') && !originalUrl.startsWith('https://')) {
+            throw new Error("Extracted URL is not valid: " + originalUrl);
+          }
+          
+          // Update the endpoint to remove the proxy
+          emit('update:endpoint', originalUrl);
+          toast.success('CORS proxy disabled, using direct endpoint');
+          console.log(`Proxy mode disabled. Endpoint changed from ${currentEndpoint} to ${originalUrl}`);
+        } else {
+          toast.info('Endpoint is not using a known CORS proxy');
+          useProxyMode.value = false;
+        }
+      } catch (extractError) {
+        console.error("Error extracting original URL from proxy:", extractError);
+        toast.error('Error removing proxy - keeping current endpoint');
+        // Keep the proxy enabled since we couldn't extract the original URL
+        useProxyMode.value = true;
+      }
+    }
+  } catch (error) {
+    console.error("Error toggling proxy mode:", error);
+    toast.error(`Error toggling proxy mode: ${error instanceof Error ? error.message : String(error)}`);
+    // Reset to a safe state based on the current endpoint
+    if (props.request?.endpoint) {
+      useProxyMode.value = props.request.endpoint.includes('corsproxy.io') || 
+                          props.request.endpoint.includes('allorigins.win') ||
+                          props.request.endpoint.includes('cors-anywhere');
+    } else {
       useProxyMode.value = false;
     }
   }
@@ -561,4 +757,75 @@ const updateEndpoint = (event: Event) => {
                          target.value.includes('allorigins.win');
   }
 };
+
+// Use ResizeObserver to monitor content changes in the response container
+onMounted(() => {
+  // Initialize keyboard shortcuts for response actions
+  window.addEventListener('keydown', (e) => {
+    // Only handle if response is visible
+    if (!props.response?.body) return;
+    
+    // Alt+Shift+F to format XML
+    if (e.altKey && e.shiftKey && e.key === 'f') {
+      e.preventDefault();
+      formatResponseXML();
+    }
+    // Ctrl+Alt+C to copy
+    else if (e.ctrlKey && e.altKey && e.key === 'c') {
+      e.preventDefault();
+      copyResponseToClipboard();
+    }
+    // Alt+Shift+E to expand/collapse
+    else if (e.altKey && e.shiftKey && e.key === 'e') {
+      e.preventDefault();
+      toggleFullResponse();
+    }
+  });
+  
+  // Create a ResizeObserver to detect changes in response content
+  const resizeObserver = new ResizeObserver(() => {
+    checkResponseOverflow();
+  });
+  
+  // Watch for DOM updates to attach the observer
+  watch(responseContainer, (el) => {
+    if (el) {
+      resizeObserver.observe(el);
+    }
+  });
+  
+  // Clean up the observer on component unmount
+  return () => {
+    if (responseContainer.value) {
+      resizeObserver.unobserve(responseContainer.value);
+    }
+    resizeObserver.disconnect();
+    window.removeEventListener('keydown', () => {});
+  };
+});
+
+// Also watch changes to the response body to check for overflow
+watch(() => props.response?.body, () => {
+  // Check overflow after the DOM has updated
+  setTimeout(checkResponseOverflow, 100);
+});
 </script>
+
+<style scoped>
+/* Add a smooth transition for the response container */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+/* Highlight SOAP tags in the response */
+.soap-highlighted {
+  color: var(--primary-color);
+}
+
+/* Style for the overflow gradient */
+.bg-gradient-to-t {
+  background-image: linear-gradient(to top, var(--primary-light-color) 0%, transparent 100%);
+}
+</style>

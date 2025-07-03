@@ -788,7 +788,7 @@ const sendRequest = async (tabId: string) => {
     if (request.soapVersion !== "1.2") {
       // For SOAP 1.1, we need SOAPAction header
       // First, remove any existing SOAPAction headers to prevent duplicates
-      const headers = request.headers.filter(h => h.key.toLowerCase() !== "soapaction")
+      const headers = request.headers ? request.headers.filter(h => h && h.key && h.key.toLowerCase() !== "soapaction") : []
       
       // Determine correct SOAPAction value based on service and operation
       let soapAction = request.operation || ""

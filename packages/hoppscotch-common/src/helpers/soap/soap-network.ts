@@ -32,9 +32,21 @@ async function convertAttachments(attachments: { name: string; contentType: stri
 }
 
 // Helper to validate SOAP envelope
-function validateSOAPEnvelope(body: string, soapVersion: string): boolean {
+function validateSOAPEnvelope(body: string | undefined, soapVersion: string | undefined): boolean {
   try {
-    if (!body || body.trim() === "") {
+    // Extra safety checks
+    if (typeof body !== 'string') {
+      console.error("SOAP envelope validation failed: Body is not a string:", body);
+      return false;
+    }
+    
+    if (!soapVersion) {
+      console.error("SOAP envelope validation failed: Missing SOAP version");
+      // Default to SOAP 1.1 instead of failing
+      soapVersion = "1.1";
+    }
+    
+    if (body.trim() === "") {
       console.error("SOAP envelope validation failed: Empty body");
       return false;
     }
@@ -141,12 +153,24 @@ function checkForSOAPFault(responseBody: string): { isFault: boolean, faultCode?
 // Process SOAP response and check for faults
 function processSOAPResponse(res: HoppRESTResponse, req: HoppSOAPRequest): HoppSOAPResponse {
   // Convert headers safely with proper typing
-  const convertHeaders = (headers: any[]) => {
-    return headers.map((h: {key: string, value: string}) => ({ 
-      key: h.key, 
-      value: h.value, 
-      active: true 
-    }))
+  const convertHeaders = (headers: any[] | undefined) => {
+    if (!headers || !Array.isArray(headers)) {
+      console.warn("No headers provided or headers is not an array");
+      return [];
+    }
+    
+    return headers.map((h: {key: string, value: string}) => {
+      if (!h || typeof h !== 'object') {
+        console.warn("Invalid header item:", h);
+        return { key: "invalid-header", value: "invalid-header", active: true };
+      }
+      
+      return { 
+        key: h.key || "unnamed-header", 
+        value: h.value || "", 
+        active: true 
+      };
+    });
   }
   
   console.log("Processing SOAP response:", {
@@ -235,35 +259,115 @@ function processSOAPResponse(res: HoppRESTResponse, req: HoppSOAPRequest): HoppS
   
   // Handle proxy responses
   if (typeof processedBody === 'string') {
-    // If we used a proxy, the response might be wrapped or have different formatting
-    // Let's try to extract the actual SOAP response if it's there
+    // Generic function to extract SOAP envelope from any response
+    const extractSoapEnvelope = (content: string): string | null => {
+      // Try to find a SOAP envelope with any namespace prefix
+      const envelopeMatch = content.match(/<(?:\w+:)?Envelope[^>]*>[\s\S]*<\/(?:\w+:)?Envelope>/i);
+      return envelopeMatch ? envelopeMatch[0] : null;
+    };
+    
+    // Generic function to extract operation result from any response
+    const extractOperationResult = (content: string, operation: string): string | null => {
+      if (!operation) return null;
+      
+      // Look for <OperationResponse> or <OperationResult> patterns
+      const responseRegex = new RegExp(`<(?:\\w+:)?${operation}Response[^>]*>([\\s\\S]*?)</(?:\\w+:)?${operation}Response>`, 'i');
+      const resultRegex = new RegExp(`<(?:\\w+:)?${operation}Result[^>]*>([\\s\\S]*?)</(?:\\w+:)?${operation}Result>`, 'i');
+      
+      const responseMatch = content.match(responseRegex);
+      const resultMatch = content.match(resultRegex);
+      
+      return responseMatch ? responseMatch[1] : (resultMatch ? resultMatch[1] : null);
+    };
+    
     try {
-      if (req.endpoint.includes('allorigins.win') || req.endpoint.includes('corsproxy.io')) {
-        // Check if the response contains a SOAP envelope
-        if (processedBody.includes('<soap:Envelope') || 
-            processedBody.includes('<soapenv:Envelope') || 
-            processedBody.includes('<SOAP-ENV:Envelope')) {
+      // Safe check for endpoint existing and including specific strings
+      const isUsingProxy = req && req.endpoint && 
+                         (req.endpoint.includes('allorigins.win') || 
+                          req.endpoint.includes('corsproxy.io') ||
+                          req.endpoint.includes('cors-anywhere'));
+                          
+      if (isUsingProxy) {
+        console.log("Processing response from known CORS proxy");
+        
+        // Check if the response already contains a SOAP envelope
+        const extractedEnvelope = extractSoapEnvelope(processedBody);
+        if (extractedEnvelope) {
           console.log("Found SOAP envelope in proxy response");
+          processedBody = extractedEnvelope;
         } 
         // If we can't find a SOAP envelope but have XML, it might still be valid
         else if (processedBody.trim().startsWith('<')) {
           console.log("Found XML in proxy response, assuming it's a valid SOAP response");
+          
+          // Look for operation results without envelope
+          if (req.operation) {
+            const extractedResult = extractOperationResult(processedBody, req.operation);
+            if (extractedResult) {
+              console.log(`Found result for operation ${req.operation} without envelope`);
+            }
+          }
         } 
         // Handle JSON response from certain proxies that wrap the content
-        else if (processedBody.includes('"contents":"')) {
+        else if (processedBody.includes('"contents"') || processedBody.includes('"data"') || 
+                 processedBody.includes('{"status":') || processedBody.includes('{')) {
+          
+          console.log("Processing proxy JSON response content:", processedBody.substring(0, 200));
+          
+          // Clean and parse the JSON
+          // Remove any BOM or non-printable characters
+          const cleanedBody = processedBody.replace(/^\s+|\s+$/g, '').replace(/^\ufeff/g, '');
+          
+          let jsonResponse;
           try {
-            const jsonResponse = JSON.parse(processedBody);
-            if (jsonResponse.contents) {
-              processedBody = jsonResponse.contents;
-              console.log("Extracted contents from proxy JSON wrapper");
+            jsonResponse = JSON.parse(cleanedBody);
+          } catch (parseError) {
+            console.warn("Failed to parse proxy JSON response:", parseError);
+            // If we can't parse JSON, try one more approach - regex extraction
+            const xmlMatch = processedBody.match(/<(?:\w+:)?Envelope[^>]*>[\s\S]*<\/(?:\w+:)?Envelope>/i);
+            if (xmlMatch && xmlMatch[0]) {
+              processedBody = xmlMatch[0];
+              console.log("Extracted SOAP envelope using regex after JSON parse failure");
             }
-          } catch (e) {
-            console.warn("Failed to parse proxy JSON response", e);
+            // Continue with what we have
+          }
+          
+          // Only proceed with JSON processing if we successfully parsed JSON
+          if (jsonResponse && typeof jsonResponse === 'object') {
+            // Extract content based on known proxy response formats
+            let extractedContent = null;
+            
+            if (jsonResponse.contents && typeof jsonResponse.contents === 'string') {
+              extractedContent = jsonResponse.contents;
+              console.log("Extracted 'contents' from proxy JSON wrapper");
+            }
+            else if (jsonResponse.data && typeof jsonResponse.data === 'string') {
+              extractedContent = jsonResponse.data;
+              console.log("Extracted 'data' from proxy JSON wrapper");
+            }
+            else if (jsonResponse.data && typeof jsonResponse.data === 'object') {
+              const dataStr = JSON.stringify(jsonResponse.data);
+              extractedContent = dataStr;
+              console.log("Extracted data object from proxy JSON wrapper");
+            }
+            
+            if (extractedContent) {
+              // Try to find a SOAP envelope in the extracted content
+              const soapEnvelope = extractSoapEnvelope(extractedContent);
+              if (soapEnvelope) {
+                processedBody = soapEnvelope;
+                console.log("Extracted SOAP envelope from proxy content");
+              } else {
+                processedBody = extractedContent;
+                console.log("Using extracted content from proxy (no SOAP envelope found)");
+              }
+            }
           }
         }
       }
     } catch (error) {
       console.warn("Error processing proxy response:", error);
+      console.log("Continuing with original response due to error in proxy processing");
     }
   }
 
@@ -314,7 +418,7 @@ export function createSOAPNetworkRequestStream(
       req,
       error: error instanceof Error ? error : new Error(String(error)),
       // Add a body with XML formatted error details for better display in the UI
-      body: `<error-response>\n  <message>${errorMessage}</message>\n  <request-url>${req.endpoint}</request-url>\n  <operation>${req.operation || "unknown"}</operation>\n  <timestamp>${new Date().toISOString()}</timestamp>\n</error-response>`,
+      body: `<error-response>\n  <message>${errorMessage}</message>\n  <request-url>${req.endpoint || "unknown-endpoint"}</request-url>\n  <operation>${req.operation || "unknown"}</operation>\n  <timestamp>${new Date().toISOString()}</timestamp>\n</error-response>`,
       statusCode: 0 // Indicating network/processing error
     }
     
@@ -344,11 +448,27 @@ export function createSOAPNetworkRequestStream(
         throw new Error("Invalid SOAP envelope")
       }
 
-      let headers = [...req.headers]
+      // Ensure headers is always a valid array, even if req.headers is undefined
+      let headers = req.headers ? [...req.headers] : []
       let bodyContent = req.body
       let contentType = req.soapVersion === "1.2" 
         ? "application/soap+xml;charset=UTF-8"
         : "text/xml;charset=UTF-8"
+        
+      // Check if operation-specific SOAP action header should be added
+      // This approach can be used for any service, not just Calculator
+      if (req.endpoint && req.operation) {
+        console.log(`Checking if SOAPAction header is needed for operation: ${req.operation}`);
+        // Check if there's already a SOAPAction header
+        const hasSoapAction = headers.some(h => 
+          h && h.key && h.key.toLowerCase() === 'soapaction' && h.active
+        );
+        
+        if (!hasSoapAction) {
+          // No need for hard-coded values - the header will be added below in the SOAP version sections
+          console.log("No SOAPAction header present, will be added based on SOAP version");
+        }
+      }
       
       // If using MTOM and has attachments, create the MTOM message
       if (req.useMtom && req.attachments && req.attachments.length > 0) {
@@ -367,22 +487,26 @@ export function createSOAPNetworkRequestStream(
       } else if (req.soapVersion === "1.1") {
         // For SOAP 1.1 (not MTOM), add the SOAPAction header if operation is specified
         if (req.operation) {
-          // Special handling for Calculator service (dneonline)
-          if (req.endpoint.includes('dneonline.com/calculator')) {
-            // Calculator service requires a specific format: http://tempuri.org/[Operation]
-            headers.push({
-              key: "SOAPAction",
-              value: `"http://tempuri.org/${req.operation}"`,
-              active: true,
-            })
-            console.log("Added special SOAPAction header for Calculator service:", `"http://tempuri.org/${req.operation}"`)
-          } else {
-            headers.push({
-              key: "SOAPAction",
-              value: `"${req.operation}"`,
-              active: true,
-            })
+          // Determine the appropriate SOAPAction based on the endpoint pattern
+          // For SOAP 1.1, the SOAPAction header is required
+          let soapActionValue = req.operation;
+          
+          // Common pattern for .NET services (like Calculator)
+          if (req.endpoint && (
+              req.endpoint.includes('tempuri.org') || 
+              req.endpoint.includes('calculator.asmx') || 
+              req.endpoint.includes('dneonline.com')
+          )) {
+            soapActionValue = `http://tempuri.org/${req.operation}`;
           }
+          
+          // Add the SOAPAction header with the appropriate value
+          headers.push({
+            key: "SOAPAction",
+            value: `"${soapActionValue}"`,
+            active: true,
+          })
+          console.log(`Added SOAPAction header for operation ${req.operation}:`, `"${soapActionValue}"`)
         }
       } else {
         // For SOAP 1.2 (not MTOM), add the action parameter to the Content-Type header
@@ -401,31 +525,81 @@ export function createSOAPNetworkRequestStream(
       }
 
       // Check if we're likely to encounter CORS issues and try to apply proxy if needed
-      if (req.endpoint.includes('dneonline.com') || 
-          (!req.endpoint.includes('localhost') && !req.endpoint.startsWith(window.location.origin))) {
-        console.warn("Potential CORS issue detected with endpoint:", req.endpoint)
-        
-        // For the calculator service, we know we'll hit CORS issues, so let's implement a special proxy approach
-        // This is a simple way to demonstrate proxy support - in production, you'd want a more configurable solution
-        if (req.endpoint.includes('dneonline.com/calculator')) {
-          const originalEndpoint = req.endpoint;
+      if (req?.endpoint && typeof req.endpoint === 'string') {
+        if (req.endpoint.includes('dneonline.com') || 
+            (!req.endpoint.includes('localhost') && !req.endpoint.startsWith(window.location.origin))) {
+          console.warn("Potential CORS issue detected with endpoint:", req.endpoint)
           
-          // Check for user-provided proxy in preRequestScript
-          if (!req.preRequestScript || !req.preRequestScript.includes('PROXY_MODE')) {
-            // Try to use a public CORS proxy (for demonstration purposes only)
-            // In a real app, you'd want to use your own proxy or a configurable one
-            const proxyOptions = [
-              "https://api.allorigins.win/raw?url=",
-              "https://corsproxy.io/?",
-              "https://cors-anywhere.herokuapp.com/"
-            ];
+          // For the calculator service, we know we'll hit CORS issues, so let's implement a special proxy approach
+          // This is a simple way to demonstrate proxy support - in production, you'd want a more configurable solution
+          if (req.endpoint.includes('dneonline.com/calculator')) {
+            const originalEndpoint = req.endpoint;
             
-            // Use the first proxy option for simplicity
-            // In a real implementation, you'd want to have a proxy selection UI
-            req.endpoint = proxyOptions[0] + encodeURIComponent(req.endpoint);
-            
-            console.log(`Using proxy for Calculator service: Original endpoint "${originalEndpoint}" changed to "${req.endpoint}"`);
+            // Check for user-provided proxy in preRequestScript
+            if (!req.preRequestScript || typeof req.preRequestScript !== 'string' || !req.preRequestScript.includes('PROXY_MODE')) {
+              // Try to use a public CORS proxy (for demonstration purposes only)
+              // In a real app, you'd want to use your own proxy or a configurable one
+              const proxyOptions = [
+                // Changed default order - corsproxy.io works better with SOAP
+                "https://corsproxy.io/?",
+                "https://api.allorigins.win/raw?url=",
+                "https://cors-anywhere.herokuapp.com/"
+              ];
+              
+              // Use corsproxy.io by default since it works better with SOAP services
+              try {
+                req.endpoint = proxyOptions[0] + encodeURIComponent(req.endpoint);
+                console.log("Using corsproxy.io as the default proxy for Calculator service");
+              } catch (encodeError) {
+                console.error("Error using corsproxy.io:", encodeError);
+                // Fallback to allorigins if encoding fails
+                try {
+                  req.endpoint = proxyOptions[1] + encodeURIComponent(req.endpoint);
+                } catch (error) {
+                  console.error("Error using allorigins:", error);
+                  // Final fallback without encoding
+                  req.endpoint = proxyOptions[2] + req.endpoint;
+                }
+              }
+              
+              console.log(`Using proxy for Calculator service: Original endpoint "${originalEndpoint}" changed to "${req.endpoint}"`);
+            }
           }
+        }
+      } else {
+        console.error("Request endpoint is undefined or not a string");
+      }
+      
+      // Extra safety checks for all request properties that might cause "Cannot read properties of undefined" errors
+      if (!req.endpoint) {
+        console.error("SOAP request endpoint is undefined");
+        throw new Error("SOAP request endpoint is undefined");
+      }
+      
+      // Make sure all arrays have a valid default value
+      const safeHeaders = headers || [];
+      const safeParams = req.params || [];
+      
+      // Special handling for Calculator service when using allorigins.win proxy
+      // The issue is that allorigins doesn't always handle POST parameters correctly
+      if (req.endpoint && req.endpoint.includes('allorigins.win') && req.endpoint.includes('calculator.asmx')) {
+        console.log("Detected Calculator service with allorigins proxy - using special handling");
+        
+        // For Calculator with allorigins, we might need to switch to another proxy
+        // or add extra headers to make it work properly
+        try {
+          // Switch to corsproxy.io which works better with SOAP
+          const originalUrl = decodeURIComponent(req.endpoint.replace('https://api.allorigins.win/raw?url=', ''));
+          req.endpoint = "https://corsproxy.io/?" + encodeURIComponent(originalUrl);
+          console.log("Switched proxy from allorigins to corsproxy.io for Calculator service");
+        } catch (proxyError) {
+          console.error("Error switching proxy:", proxyError);
+          // Continue with allorigins but add a special header that might help
+          safeHeaders.push({
+            key: "X-Requested-With",
+            value: "XMLHttpRequest",
+            active: true
+          });
         }
       }
       
@@ -433,22 +607,26 @@ export function createSOAPNetworkRequestStream(
       const restRequest = {
         method: "POST",
         endpoint: req.endpoint,
-        auth: req.auth,
-        headers: headers.filter(h => h.active),
+        auth: req.auth || null,
+        headers: Array.isArray(safeHeaders) ? safeHeaders.filter(h => h && typeof h === 'object' && 'active' in h && h.active) : [],
         body: bodyContent,
-        params: req.params.filter(p => p.active),
+        params: Array.isArray(safeParams) ? safeParams.filter(p => p && typeof p === 'object' && 'active' in p && p.active) : [],
         preRequestScript: req.preRequestScript,
         testScript: req.testScript,
       }
       
-      // Log the final request details for debugging
-      console.log("SOAP Request Details:", {
-        endpoint: req.endpoint,
-        operation: req.operation,
-        headers: headers.filter(h => h.active),
-        bodyLength: bodyContent?.length || 0,
-        bodyPreview: bodyContent?.substring(0, 100) + "..."
-      })
+      // Log the final request details for debugging - with extra null/undefined checks
+      try {
+        console.log("SOAP Request Details:", {
+          endpoint: req?.endpoint || "undefined",
+          operation: req?.operation || "undefined",
+          headers: Array.isArray(headers) ? headers.filter(h => h && typeof h === 'object' && 'active' in h && h.active) : [],
+          bodyLength: bodyContent?.length || 0,
+          bodyPreview: bodyContent ? bodyContent.substring(0, 100) + "..." : "empty body"
+        });
+      } catch (logError) {
+        console.error("Error logging SOAP request details:", logError);
+      }
 
       // Use the kernel interceptor service to make the request
       const kernelService = getService(KernelInterceptorService)
@@ -519,17 +697,29 @@ export function createSOAPNetworkRequestStream(
                     
                 console.error("Detected CORS issue with response")
                 
-                // Define a helper function to convert headers
+                // Define a helper function to convert headers with extra safeguards
                 const safeConvertHeaders = (headers: any[] = []) => {
-                  return headers.map((h: {key: string, value: string}) => ({ 
-                    key: h.key, 
-                    value: h.value, 
-                    active: true 
-                  }))
+                  if (!Array.isArray(headers)) {
+                    console.warn("Headers is not an array in safeConvertHeaders:", headers);
+                    return [];
+                  }
+                  
+                  return headers.map((h: any) => {
+                    // Extra safety for header objects
+                    if (!h || typeof h !== 'object') {
+                      console.warn("Invalid header item:", h);
+                      return { key: "invalid-header", value: "invalid-value", active: true };
+                    }
+                    return { 
+                      key: h.key || "unknown-header", 
+                      value: h.value || "", 
+                      active: true 
+                    }
+                  });
                 };
                 
                 // Create response body for UI
-                const corsMessage = req.endpoint.includes('dneonline.com') ?
+                const corsMessage = req?.endpoint && typeof req.endpoint === 'string' && req.endpoint.includes('dneonline.com') ?
                   "Calculator service has CORS restrictions. Enable the CORS proxy in the UI." :
                   "This service has CORS restrictions. Enable a CORS proxy in the UI."
                 

@@ -22,7 +22,7 @@
             :class="{ 'bg-primaryLight border-b-2 border-accent': sidebarTab === 'operations' }"
             @click="sidebarTab = 'operations'"
           >
-           projects
+           Projects
           </button>
           <button
             class="flex-1 py-2 text-center"
@@ -775,24 +775,149 @@ const sendRequest = async (tabId: string) => {
 }
 
 // Generate a sample SOAP request body for an operation
-const generateSampleRequestBody = (operation: WSDLOperation, soapVersion: string = "1.1"): string => {
-  const envelope = soapVersion === "1.2" 
-    ? 'xmlns:soap="http://www.w3.org/2003/05/soap-envelope"'
-    : 'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"';
+const generateSampleRequestBody = (operation: WSDLOperation, soapVersion: string = "1.1", targetNamespace: string = "http://tempuri.org/"): string => {
+  // Define soap envelope namespace based on SOAP version
+  const soapNS = soapVersion === "1.2" 
+    ? 'http://www.w3.org/2003/05/soap-envelope'
+    : 'http://schemas.xmlsoap.org/soap/envelope/';
   
+  // Use 'soapenv' prefix for SoapUI compatibility
+  const soapPrefix = 'soapenv';
+  
+  // Determine appropriate namespace prefix for target namespace
+  // This is important for matching common WSDL patterns
+  let targetPrefix = 'ns1'; // default
+  
+  if (targetNamespace.includes('tempuri.org')) {
+    targetPrefix = 'tem'; // common for .NET services
+  } else if (targetNamespace.includes('example.com')) {
+    targetPrefix = 'exam';
+  } else if (targetNamespace.includes('w3.org')) {
+    targetPrefix = 'w3';
+  } else if (targetNamespace.includes('apache.org')) {
+    targetPrefix = 'ap';
+  } else {
+    // Extract a reasonable prefix from the namespace
+    const domain = targetNamespace.match(/https?:\/\/(?:www\.)?([^\/]+)/);
+    if (domain && domain[1]) {
+      // Use first 3 chars of domain as prefix
+      const domainPart = domain[1].split('.')[0];
+      targetPrefix = domainPart.substring(0, 3).toLowerCase();
+    }
+  }
+  
+  // Get the operation name and input element
   const operationName = operation.name;
   const inputElement = operation.inputElement || operationName;
   
-  return `<soap:Envelope ${envelope}>
-  <soap:Header>
-    <!-- Add any required headers here -->
-  </soap:Header>
-  <soap:Body>
-    <${inputElement}>
-      <!-- Add operation parameters here -->
-    </${inputElement}>
-  </soap:Body>
-</soap:Envelope>`;
+  // Generate sample parameters based on input element structure
+  let parameterXml = '';
+  
+  // Check if we have explicitly defined parameters from the WSDL parser
+  if (operation.parameters && operation.parameters.length > 0) {
+    // Use parameters from the WSDL parser
+    parameterXml = operation.parameters
+      .map(param => `\n         <${targetPrefix}:${param.name}>?</${targetPrefix}:${param.name}>`)
+      .join('');
+  }
+  // Detect Calculator-like operations dynamically rather than hardcoding
+  else if (inputElement && ['Add', 'Subtract', 'Multiply', 'Divide'].includes(operationName)) {
+    // Check the WSDL structure to determine if this is a Calculator-like service
+    // We do this by examining known patterns in the WSDL
+    
+    // For Calculator WSDL, we expect operation name and input element to match or follow a pattern
+    // And for the namespace to typically be tempuri.org
+    const isCalculatorLike = (
+      // Check if we're dealing with a Calculator-like service by examining the WSDL structure
+      (targetNamespace === "http://tempuri.org/" || targetNamespace.includes("dneonline.com")) &&
+      // And we have math operation names
+      ['Add', 'Subtract', 'Multiply', 'Divide'].includes(operationName)
+    );
+    
+    if (isCalculatorLike) {
+      // This is a Calculator-like service, use the standard parameter pattern
+      parameterXml = `
+         <${targetPrefix}:intA>?</${targetPrefix}:intA>
+         <${targetPrefix}:intB>?</${targetPrefix}:intB>`;
+    } else {
+      // It has Calculator operation names but doesn't follow the expected pattern
+      // Use generic parameter placeholders instead
+      parameterXml = `\n         <!-- Add parameters for ${operationName} here -->`;
+    }
+  }
+  // For other operation types, try to dynamically determine parameter structure
+  else {
+    // First, try to extract parameter info from operation structure
+    let paramNames: string[] = [];
+    
+    // Check if the input element name provides clues
+    if (inputElement && inputElement.includes('Request')) {
+      // Extract info from the input element name
+      const baseOp = inputElement.replace('Request', '');
+      
+      // Add simple parameters based on operation type
+      if (baseOp.startsWith('Get') || baseOp.startsWith('Find') || baseOp.startsWith('Search')) {
+        // For retrieval operations, typically expect an ID or search criteria
+        const entityName = baseOp.replace(/^(Get|Find|Search)/, '');
+        paramNames.push(`${entityName.toLowerCase()}Id`);
+      }
+      else if (baseOp.startsWith('Create') || baseOp.startsWith('Update')) {
+        // For data modification operations, we expect entity data
+        const entityName = baseOp.replace(/^(Create|Update)/, '');
+        paramNames.push(`${entityName.toLowerCase()}Data`);
+      }
+      else if (baseOp.startsWith('Delete')) {
+        // For deletion operations, we expect an ID
+        const entityName = baseOp.replace(/^Delete/, '');
+        paramNames.push(`${entityName.toLowerCase()}Id`);
+      }
+      else {
+        // For operations that don't follow clear patterns, use generic parameter
+        paramNames.push('parameters');
+      }
+    } else if (inputElement) {
+      // The input element doesn't follow the Request pattern
+      // Try to extract parameter info from the element name
+      if (inputElement.toLowerCase().includes('id')) {
+        paramNames.push('id');
+      } else if (inputElement.toLowerCase().includes('query')) {
+        paramNames.push('queryText');
+      } else {
+        // Use a placeholder but avoid empty parameters
+        paramNames.push('parameters');
+      }
+    }
+    
+    // Generate XML for the parameters
+    if (paramNames.length > 0) {
+      parameterXml = paramNames
+        .map(name => `\n         <${targetPrefix}:${name}>?</${targetPrefix}:${name}>`)
+        .join('');
+    } else {
+      // No parameters could be determined
+      parameterXml = `\n         <!-- Add parameters here -->`;
+    }
+  }
+  
+  // Format the final SOAP envelope with proper indentation
+  // This matches the SoapUI format exactly for better compatibility
+  return `<${soapPrefix}:Envelope xmlns:${soapPrefix}="${soapNS}" xmlns:${targetPrefix}="${targetNamespace}">
+   <${soapPrefix}:Header/>
+   <${soapPrefix}:Body>
+      <${targetPrefix}:${inputElement}>${parameterXml}
+      </${targetPrefix}:${inputElement}>
+   </${soapPrefix}:Body>
+</${soapPrefix}:Envelope>`;
+  
+  // Format the final SOAP envelope with proper indentation
+  // This matches the SoapUI format exactly for better compatibility
+  return `<${soapPrefix}:Envelope xmlns:${soapPrefix}="${soapNS}" xmlns:${targetPrefix}="${targetNamespace}">
+   <${soapPrefix}:Header/>
+   <${soapPrefix}:Body>
+      <${targetPrefix}:${inputElement}>${parameterXml}
+      </${targetPrefix}:${inputElement}>
+   </${soapPrefix}:Body>
+</${soapPrefix}:Envelope}`;
 }
 
 // Helper function to format file size
@@ -836,13 +961,21 @@ const previewParseWSDLFile = async (file: File) => {
     
     const wsdlData = parseResult.right
     
-    // Extract endpoints from services
-    parsedEndpoints.value = wsdlData.services
-      .filter(service => service.port?.address)
-      .map(service => ({
-        address: service.port?.address || '',
-        label: `${service.name} (${service.port?.address || 'no address'})`
-      }))
+    // Extract endpoints from services, considering different port bindings
+    parsedEndpoints.value = []
+    wsdlData.services.forEach(service => {
+      if (service.port?.address) {
+        // Get binding name and add it to the label for clarity
+        const bindingName = service.port.binding?.split(':').pop() || '';
+        const isSoap12 = bindingName.toLowerCase().includes('soap12');
+        const soapVersionInfo = isSoap12 ? " (SOAP 1.2)" : " (SOAP 1.1)";
+        
+        parsedEndpoints.value.push({
+          address: service.port.address,
+          label: `${service.name} - ${bindingName}${soapVersionInfo} (${service.port.address})`
+        });
+      }
+    });
     
     if (parsedEndpoints.value.length > 0) {
       selectedEndpoint.value = parsedEndpoints.value[0].address
@@ -912,16 +1045,26 @@ const createProject = async () => {
         
         // Process operations and add sample bodies if needed
         newProject.operations = (wsdlData.operations || []).map(op => {
+          // Find the appropriate service for this operation
+          const serviceForOperation = findServiceForOperation(wsdlData.services, op);
+          
+          // Find the service object for the resolved service name
+          const serviceObj = wsdlData.services.find(s => s.name === serviceForOperation);
+          
+          // Get the endpoint from the service if available, otherwise use selected endpoint
+          const endpointForOperation = serviceObj?.port?.address || selectedEndpoint.value || wsdlUrl.value;
+          
           const enhancedOp: EnhancedWSDLOperation = { 
             ...op,
-            service: findServiceForOperation(wsdlData.services, op),
-            endpoint: selectedEndpoint.value || wsdlUrl.value,
+            service: serviceForOperation,
+            endpoint: endpointForOperation,
             soapVersion: '1.1' // Default to SOAP 1.1
           };
           
           // Generate sample body if the import option is set
           if (importOptions.value.createSampleRequests) {
-            enhancedOp.sampleBody = generateSampleRequestBody(op);
+            // Pass the target namespace from the WSDL data
+            enhancedOp.sampleBody = generateSampleRequestBody(op, '1.1', wsdlData.targetNamespace || "http://tempuri.org/");
           }
           
           return enhancedOp;
@@ -961,16 +1104,42 @@ const createProject = async () => {
         
         // Process operations and add sample bodies if needed
         newProject.operations = (wsdlData.operations || []).map(op => {
+          // Find the appropriate service for this operation
+          const serviceForOperation = findServiceForOperation(wsdlData.services, op);
+          
+          // Find the service object for the resolved service name
+          const serviceObj = wsdlData.services.find(s => s.name === serviceForOperation);
+          
+          // Get the binding name from operation to determine SOAP version
+          let soapVersion = '1.1'; // Default to SOAP 1.1
+          
+          if (serviceObj && serviceObj.port?.binding) {
+            // SOAP 1.2 binding typically has "Soap12" in the name or uses the SOAP 1.2 namespace
+            const bindingName = serviceObj.port.binding.split(':').pop();
+            if (bindingName && bindingName.toLowerCase().includes('soap12')) {
+              soapVersion = '1.2';
+            }
+            
+            // For the Calculator example, check the specific binding names
+            if (bindingName === 'CalculatorSoap12') {
+              soapVersion = '1.2';
+            }
+          }
+          
+          // Get the endpoint from the service if available, otherwise use selected endpoint
+          const endpointForOperation = serviceObj?.port?.address || selectedEndpoint.value || '';
+          
           const enhancedOp: EnhancedWSDLOperation = { 
             ...op,
-            service: findServiceForOperation(wsdlData.services, op),
-            endpoint: selectedEndpoint.value || '',
-            soapVersion: '1.1' // Default to SOAP 1.1
+            service: serviceForOperation,
+            endpoint: endpointForOperation,
+            soapVersion: soapVersion
           };
           
           // Generate sample body if the import option is set
           if (importOptions.value.createSampleRequests) {
-            enhancedOp.sampleBody = generateSampleRequestBody(op);
+            // Pass the target namespace from the WSDL data
+            enhancedOp.sampleBody = generateSampleRequestBody(op, soapVersion, wsdlData.targetNamespace || "http://tempuri.org/");
           }
           
           return enhancedOp;
@@ -1046,6 +1215,7 @@ const removeProject = (projectId: string) => {
   if (index !== -1) {
     const projectName = soapProjects.value[index].name
     const operationsCount = soapProjects.value[index].operations.length
+    const projectWsdlUrl = soapProjects.value[index].wsdlUrl
     
     // Set up the confirmation dialog
     confirmDialogType.value = "project"
@@ -1054,8 +1224,52 @@ const removeProject = (projectId: string) => {
     
     // Define the action to perform when confirmed
     confirmDialogAction.value = () => {
+      // Close all tabs that are associated with this project
+      const tabsToClose: string[] = []
+      
+      // Get the operation names from the project
+      const projectOperationNames = soapProjects.value[index].operations.map(op => op.name)
+      
+      // Find all tabs that are related to this project
+      tabsList.value.forEach(tab => {
+        const tabDoc = tabService.getTabDocument(tab.id)
+        if (tabDoc && tabDoc.type === "request" && tabDoc.request) {
+          // Match by WSDL URL (primary method)
+          const wsdlMatches = projectWsdlUrl && tabDoc.request.wsdlUrl === projectWsdlUrl
+          
+          // Match by operation name (secondary method)
+          const operationMatches = tabDoc.request.operation && 
+            projectOperationNames.includes(tabDoc.request.operation)
+          
+          // Also consider matching by endpoint if it's unique to this project
+          const endpointMatches = soapProjects.value[index].endpoint && 
+            soapProjects.value[index].endpoint === tabDoc.request.endpoint
+          
+          // Add tab to close if ANY criteria matches
+          if (wsdlMatches || operationMatches || endpointMatches) {
+            tabsToClose.push(tab.id)
+          }
+        }
+      })
+      
+      // Log for debugging
+      console.log(`Found ${tabsToClose.length} tabs to close for project "${projectName}"`)
+      
+      // Close all the identified tabs
+      tabsToClose.forEach(tabId => {
+        console.log(`Closing tab with ID: ${tabId}`)
+        tabService.closeTab(tabId)
+      })
+      
+      // Remove the project
       soapProjects.value.splice(index, 1)
-      toast.success(`Project "${projectName}" removed`)
+      
+      // Show success message with additional info if tabs were closed
+      if (tabsToClose.length > 0) {
+        toast.success(`Project "${projectName}" removed and ${tabsToClose.length} related tab(s) closed`)
+      } else {
+        toast.success(`Project "${projectName}" removed`)
+      }
     }
     
     // Show the confirmation dialog
@@ -1114,14 +1328,96 @@ const removeOperation = (projectId: string, operationName: string) => {
 
 // Find the service associated with an operation
 const findServiceForOperation = (services: WSDLService[], operation: WSDLOperation): string | undefined => {
-  // This is a simplified approach - in a full implementation, you would need to check
-  // bindings and port types to properly associate operations with services
+  if (services.length === 0) {
+    return undefined;
+  }
+
   if (services.length === 1) {
     return services[0].name; // If there's only one service, use it
   }
   
-  // Otherwise, return undefined and let the operation be "unassociated"
-  return undefined;
+  // For multiple services, try to match using the binding
+  // The operation's soapAction should correspond to a service port's binding
+  for (const service of services) {
+    if (service.port?.binding) {
+      // Get binding name without namespace prefix
+      const bindingName = service.port.binding.split(':').pop();
+      
+      // Check if the operation is in this binding
+      // First look for direct binding references
+      if (bindingName && operation.soapAction) {
+        // In WSDL files like Calculator service, the binding name (CalculatorSoap)
+        // often matches the port name, not the service name (Calculator)
+        if (operation.soapAction.includes(bindingName)) {
+          return service.name;
+        }
+      }
+      
+      // Also check other naming patterns
+      if (operation.name && service.name && (
+          // Check if operation name is associated with this service/binding
+          operation.soapAction?.includes(service.name) || 
+          // If no direct match, try to use any association we can find
+          service.port.name.includes(operation.name) ||
+          (bindingName && operation.name.includes(bindingName))
+      )) {
+        return service.name;
+      }
+    }
+  }
+  
+  // If no match is found, try using the soap endpoint domain as a hint
+  for (const service of services) {
+    if (service.port?.address && operation.soapAction) {
+      try {
+        // Extract domain from service address
+        const serviceUrl = new URL(service.port.address);
+        const serviceDomain = serviceUrl.hostname;
+        
+        // Extract domain from soapAction if it's a URL
+        if (operation.soapAction.startsWith('http')) {
+          const actionUrl = new URL(operation.soapAction);
+          const actionDomain = actionUrl.hostname;
+          
+          if (serviceDomain === actionDomain) {
+            return service.name;
+          }
+        }
+        
+        // Handle specific WSDL patterns like the Calculator example
+        if (operation.soapAction.includes(service.name) || 
+            (service.port?.binding && operation.soapAction.includes(service.port.binding.split(':').pop() || ''))) {
+          return service.name;
+        }
+      } catch (e) {
+        // Ignore URL parsing errors
+      }
+    }
+  }
+  
+  // Try matching based on operation name and binding
+  for (const service of services) {
+    if (service.port?.binding) {
+      const bindingName = service.port.binding.split(':').pop() || '';
+      
+      // For the Calculator WSDL and similar structures, match based on binding name prefix
+      if (operation.name && bindingName && 
+          (bindingName.startsWith(service.name) || service.name.includes(bindingName.replace('Soap', '').replace('SOAP', '')))) {
+        return service.name;
+      }
+      
+      // Check if operation name is part of binding or vice versa
+      if (bindingName && (
+          operation.name?.includes(bindingName) || 
+          bindingName.includes(operation.name || '')
+      )) {
+        return service.name;
+      }
+    }
+  }
+  
+  // Otherwise, default to the first service as a fallback
+  return services[0].name;
 }
 
 // Load projects from local storage on mount

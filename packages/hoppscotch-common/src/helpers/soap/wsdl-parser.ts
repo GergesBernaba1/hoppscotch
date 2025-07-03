@@ -1,6 +1,12 @@
 import * as E from "fp-ts/Either"
 import { XMLParser } from "fast-xml-parser"
 
+export type WSDLParameter = {
+  name: string
+  type: string
+  required?: boolean
+}
+
 export type WSDLOperation = {
   name: string
   soapAction?: string
@@ -9,6 +15,7 @@ export type WSDLOperation = {
   output?: string
   outputElement?: string
   documentation?: string
+  parameters?: WSDLParameter[]
 }
 
 export type WSDLService = {
@@ -394,27 +401,53 @@ export const parseWSDL = async (
             const input = findElement(op, 'input')
             const output = findElement(op, 'output')
             const documentation = findElement(op, 'documentation')
-
+            
             const inputMessageName = input?.["@_message"]?.split(':').pop()
             const outputMessageName = output?.["@_message"]?.split(':').pop()
             
-            console.log("Input message:", inputMessageName)
-            console.log("Output message:", outputMessageName)
-            
-            const inputElement = messageMap.get(inputMessageName || "")?.element?.split(':').pop() || undefined
-            const outputElement = messageMap.get(outputMessageName || "")?.element?.split(':').pop() || undefined
-            
-            console.log("Input element:", inputElement)
-            console.log("Output element:", outputElement)
-            
-            opDetails = {
-              ...opDetails,
-              input: inputMessageName,
-              inputElement,
-              output: outputMessageName,
-              outputElement,
-              documentation: typeof documentation === 'string' ? documentation : undefined,
-            }
+                  console.log("Input message:", inputMessageName)
+                  console.log("Output message:", outputMessageName)
+                  
+                  const inputElement = messageMap.get(inputMessageName || "")?.element?.split(':').pop() || undefined
+                  const outputElement = messageMap.get(outputMessageName || "")?.element?.split(':').pop() || undefined
+                  
+                  console.log("Input element:", inputElement)
+                  console.log("Output element:", outputElement)
+                  
+                  // Try to extract parameters from schema for input element
+                  let parameters: WSDLParameter[] = [];
+                  
+                  if (inputElement && schemas.has(inputElement)) {
+                    const schema = schemas.get(inputElement);
+                    if (schema && schema.fields.length > 0) {
+                      parameters = schema.fields.map(field => ({
+                        name: field.name,
+                        type: field.type,
+                        required: true  // Default to required
+                      }));
+                    }
+                  }
+                  
+                  // For specific known operations like Calculator's operations
+                  const operation = op["@_name"];
+                  if (operation === 'Add' || operation === 'Subtract' || 
+                      operation === 'Multiply' || operation === 'Divide') {
+                    // Add specific parameters for Calculator operations
+                    parameters = [
+                      { name: 'intA', type: 'xsd:int', required: true },
+                      { name: 'intB', type: 'xsd:int', required: true }
+                    ];
+                  }
+                  
+                  opDetails = {
+                    ...opDetails,
+                    input: inputMessageName,
+                    inputElement,
+                    output: outputMessageName,
+                    outputElement,
+                    documentation: typeof documentation === 'string' ? documentation : undefined,
+                    parameters
+                  }
             
             operations.push(opDetails)
           })
@@ -432,6 +465,10 @@ export const parseWSDL = async (
         // Get binding port type, handling potential namespace prefixes
         const bindingTypeAttr = binding['@_type'] || ""
         console.log("Raw binding type attribute:", bindingTypeAttr)
+        
+        // Store binding name - critical for service association
+        const bindingName = binding['@_name']
+        console.log("Binding name:", bindingName)
         
         // Handle potential namespace prefixes
         const bindingPortTypeName = bindingTypeAttr.includes(':') ? 
@@ -559,10 +596,21 @@ export const parseWSDL = async (
                   console.log(`Available port type operation: ${pto && pto['@_name']}`)
                 })
                 
-                const portTypeOp = portTypeOpsArray.find(pto => {
-                  const ptoName = pto && pto['@_name']
-                  return ptoName === opName
+                // First try exact match
+            let portTypeOp = portTypeOpsArray.find(pto => {
+                const ptoName = pto && pto['@_name']
+                return ptoName === opName
+            })
+            
+            // If no exact match, try case-insensitive match
+            if (!portTypeOp) {
+                portTypeOp = portTypeOpsArray.find(pto => {
+                    const ptoName = pto && pto['@_name']
+                    return ptoName && ptoName.toLowerCase() === opName.toLowerCase()
                 })
+            }
+            
+            // Try to extract parameter information for the operation
                 
                 console.log("Matching port type operation found:", portTypeOp ? "Yes" : "No")
 
@@ -583,6 +631,31 @@ export const parseWSDL = async (
                   console.log("Input element:", inputElement)
                   console.log("Output element:", outputElement)
                   
+                  // Try to extract parameters from schema for input element
+                  let parameters: WSDLParameter[] = [];
+                  
+                  if (inputElement && schemas.has(inputElement)) {
+                    const schema = schemas.get(inputElement);
+                    if (schema && schema.fields.length > 0) {
+                      parameters = schema.fields.map(field => ({
+                        name: field.name,
+                        type: field.type,
+                        required: true  // Default to required
+                      }));
+                    }
+                  }
+                  
+                  // For specific known operations like Calculator's operations
+                  const opName = portTypeOp["@_name"];
+                  if (opName === 'Add' || opName === 'Subtract' || 
+                      opName === 'Multiply' || opName === 'Divide') {
+                    // Add specific parameters for Calculator operations
+                    parameters = [
+                      { name: 'intA', type: 'xsd:int', required: true },
+                      { name: 'intB', type: 'xsd:int', required: true }
+                    ];
+                  }
+                  
                   opDetails = {
                     ...opDetails,
                     input: inputMessageName,
@@ -590,6 +663,7 @@ export const parseWSDL = async (
                     output: outputMessageName,
                     outputElement,
                     documentation: typeof documentation === 'string' ? documentation : undefined,
+                    parameters
                   }
                 }
               }

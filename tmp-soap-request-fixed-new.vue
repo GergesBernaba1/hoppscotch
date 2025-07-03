@@ -108,7 +108,7 @@
         <div class="flex flex-col flex-1 p-4" v-else-if="activeTab === 'body'">
           <textarea
             v-model="body"
-            class="flex-1 p-4 border rounded font-mono bg-primaryLight"
+            class="flex-1 p-4 border rounded font-mono bg-primaryLight overflow-auto"
             placeholder="SOAP XML Body"
           ></textarea>
           

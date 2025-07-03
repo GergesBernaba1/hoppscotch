@@ -6,7 +6,7 @@ import { KernelInterceptorService, KernelInterceptorError } from "~/services/ker
 import { getService } from "~/modules/dioc"
 import { RESTRequest } from "~/helpers/kernel/rest/request"
 import { RESTResponse } from "~/helpers/kernel/rest/response"
-import { RelayResponse, RelayError } from "@hoppscotch/kernel/src/relay/v/1"
+import { RelayResponse } from "@hoppscotch/kernel/src/relay/v/1"
 import { HoppRESTResponse } from "~/helpers/types/HoppRESTResponse"
 import { createMTOMMessage } from "./soap-attachments"
 import { HoppSOAPRequest, HoppSOAPResponse } from "@hoppscotch/data"
@@ -34,37 +34,71 @@ async function convertAttachments(attachments: { name: string; contentType: stri
 // Helper to validate SOAP envelope
 function validateSOAPEnvelope(body: string, soapVersion: string): boolean {
   try {
+    if (!body || body.trim() === "") {
+      console.error("SOAP envelope validation failed: Empty body");
+      return false;
+    }
+    
     const parser = new DOMParser()
     const doc = parser.parseFromString(body, "text/xml")
     
     // Check for XML parsing errors
     const parserError = doc.querySelector("parsererror")
     if (parserError) {
+      const errorText = parserError.textContent || 'Unknown parse error';
+      console.error("SOAP envelope XML parsing error:", errorText);
       return false
     }
 
-    // Check for SOAP envelope
-    const envelope = doc.querySelector("Envelope")
+    // Check for SOAP envelope with various namespace prefixes
+    const envelope = doc.querySelector("Envelope") || 
+                    doc.querySelector("soap\\:Envelope") ||
+                    doc.querySelector("soapenv\\:Envelope") ||
+                    doc.querySelector("SOAP-ENV\\:Envelope")
+                    
     if (!envelope) {
+      console.error("SOAP envelope validation failed: No Envelope element found");
       return false
     }
 
-    // Check for SOAP version
-    const namespace = envelope.getAttribute("xmlns:soap") || envelope.getAttribute("xmlns")
-    if (!namespace) {
+    // Check for SOAP version by inspecting namespaces
+    // We look at various attributes since different implementations use different prefixes
+    const namespaces = [
+      envelope.getAttribute("xmlns:soap"),
+      envelope.getAttribute("xmlns:soapenv"),
+      envelope.getAttribute("xmlns:SOAP-ENV"),
+      envelope.getAttribute("xmlns")
+    ].filter(Boolean);
+    
+    if (namespaces.length === 0) {
+      console.error("SOAP envelope validation failed: No namespace attributes found");
       return false
     }
-
+    
+    // Check if any namespace matches the expected one for the SOAP version
+    const soap11NS = "http://schemas.xmlsoap.org/soap/envelope/";
+    const soap12NS = "http://www.w3.org/2003/05/soap-envelope";
+    
     if (soapVersion === "1.1") {
-      return namespace === "http://schemas.xmlsoap.org/soap/envelope/"
+      const hasValidNS = namespaces.some(ns => ns === soap11NS);
+      if (!hasValidNS) {
+        console.error("SOAP 1.1 envelope validation failed: Invalid namespace", { foundNamespaces: namespaces });
+      }
+      return hasValidNS;
     } else if (soapVersion === "1.2") {
-      return namespace === "http://www.w3.org/2003/05/soap-envelope"
+      const hasValidNS = namespaces.some(ns => ns === soap12NS);
+      if (!hasValidNS) {
+        console.error("SOAP 1.2 envelope validation failed: Invalid namespace", { foundNamespaces: namespaces });
+      }
+      return hasValidNS;
     }
 
-    return false
+    console.error("SOAP envelope validation failed: Invalid SOAP version specified", { version: soapVersion });
+    return false;
   } catch (error) {
-    console.error("Error validating SOAP envelope:", error)
-    return false
+    console.error("Error validating SOAP envelope:", error);
+    console.error("SOAP request failed with error:", error instanceof Error ? error.message : String(error));
+    return false;
   }
 }
 
@@ -147,7 +181,11 @@ function processSOAPResponse(res: HoppRESTResponse, req: HoppSOAPRequest): HoppS
     const faultCheck = checkForSOAPFault(res.body)
     
     if (faultCheck.isFault) {
+      // Log the SOAP Fault details for debugging
       console.log("SOAP Fault detected:", faultCheck)
+      
+      // Always log this specific error message format for consistency
+      console.error("SOAP request failed with error:", `SOAP Fault: ${faultCheck.faultCode || 'Unknown'} - ${faultCheck.faultString || 'Unknown error'}`);
       
       // Create a formatted fault message to highlight in the body
       const faultMessage = `SOAP Fault: ${faultCheck.faultCode} - ${faultCheck.faultString}`;
@@ -159,13 +197,21 @@ function processSOAPResponse(res: HoppRESTResponse, req: HoppSOAPRequest): HoppS
       // Add comment at the top to highlight the error
       enhancedBody = `<!-- ${faultMessage} -->\n\n${enhancedBody}`;
       
+      // Return a structured error response with the fault details
+      // Use type assertion to add the meta property that's not in the original type
       return {
         type: "fail",
         req,
         statusCode: res.statusCode,
         headers: convertHeaders(res.headers),
         body: enhancedBody,
-        error: new Error(faultMessage),
+        error: new Error(faultMessage)
+      } as HoppSOAPResponse & { 
+        meta: {
+          isSoapFault: true,
+          faultCode?: string,
+          faultString?: string
+        }
       }
     }
   }
@@ -260,6 +306,7 @@ export function createSOAPNetworkRequestStream(
   const handleError = (error: unknown) => {
     // Get a proper error message
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error && error.stack ? error.stack : 'No stack trace';
     
     // Create a more detailed error response with information for the UI
     const errorResponse: HoppSOAPResponse = {
@@ -267,11 +314,22 @@ export function createSOAPNetworkRequestStream(
       req,
       error: error instanceof Error ? error : new Error(String(error)),
       // Add a body with XML formatted error details for better display in the UI
-      body: `<error-response>\n  <message>${errorMessage}</message>\n  <request-url>${req.endpoint}</request-url>\n  <operation>${req.operation || "unknown"}</operation>\n</error-response>`,
+      body: `<error-response>\n  <message>${errorMessage}</message>\n  <request-url>${req.endpoint}</request-url>\n  <operation>${req.operation || "unknown"}</operation>\n  <timestamp>${new Date().toISOString()}</timestamp>\n</error-response>`,
       statusCode: 0 // Indicating network/processing error
     }
     
+    // Enhanced error logging with full context
     console.error("SOAP request failed with error:", errorMessage);
+    console.error("Detailed SOAP error context:", {
+      errorMessage,
+      errorStack,
+      endpoint: req.endpoint,
+      operation: req.operation,
+      soapVersion: req.soapVersion,
+      headersCount: req.headers?.length || 0,
+      bodyLength: req.body?.length || 0,
+      errorObject: error
+    });
     
     response.next(errorResponse)
     onHistoryUpdate?.(req, errorResponse)
@@ -407,7 +465,16 @@ export function createSOAPNetworkRequestStream(
         soapVersion: req.soapVersion
       })
       
+      // Add debugging to log each step of the process
+      console.log("Converting to kernel request and executing...", {
+        endpoint: kernelRequest.url,
+        method: kernelRequest.method,
+        headersCount: kernelRequest.headers?.length || 0,
+        bodySize: kernelRequest.data ? kernelRequest.data.length : 0
+      })
+
       const result = await kernelService.execute(kernelRequest)
+      console.log("Kernel request execution started, waiting for response...")
       
       // Set a timeout to ensure we don't wait forever
       timeoutId = setTimeout(() => {
@@ -421,30 +488,36 @@ export function createSOAPNetworkRequestStream(
       result.response.then((res: E.Either<KernelInterceptorError, RelayResponse>) => {
         if (isCancelled) return // Don't proceed if request was cancelled
         
+        // Log the raw response first
+        console.log("Raw response received:", {
+          responseType: res._tag,
+          isError: res._tag === "Left",
+          isSuccess: res._tag === "Right",
+          endpoint: req.endpoint,
+          operation: req.operation
+        })
+        
         if (res._tag === "Right") {
           console.log("SOAP request successful, processing response")
-          return RESTResponse.toResponse(res.right, restRequest as any)
+          RESTResponse.toResponse(res.right, restRequest as any)
             .then((processedRes: HoppRESTResponse) => {
               if (isCancelled) return // Check again after async operation
-              
+                
               console.log("SOAP response processed:", {
                 status: processedRes.statusCode,
-                bodyLength: typeof processedRes.body === 'string' ? processedRes.body.length : 'binary data'
+                bodyLength: typeof processedRes.body === 'string' ? processedRes.body.length : 'binary data',
+                bodyPreview: typeof processedRes.body === 'string' ? processedRes.body.substring(0, 100) : 'binary data'
               })
               
-              // Special handling for CORS errors that might be hidden
+              // Special handling for potential issues
+              
+              // 1. Check for CORS errors that might be hidden
               if (processedRes.statusCode === 0 || 
-                  (typeof processedRes.body === 'string' && processedRes.body.includes('Access-Control-Allow-Origin'))) {
+                  (typeof processedRes.body === 'string' && 
+                   (processedRes.body.includes('Access-Control-Allow-Origin') || 
+                    processedRes.body.includes('cross-origin')))) {
+                    
                 console.error("Detected CORS issue with response")
-                
-                // For the calculator service, give specific guidance
-                let errorMessage = "CORS error detected. The server doesn't allow requests from your browser. " +
-                                   "Try using a CORS proxy or make the request server-side.";
-                                   
-                if (req.endpoint.includes('dneonline.com')) {
-                  errorMessage = "CORS error detected. The dneonline.com Calculator service doesn't support direct browser requests. " +
-                                 "Please use a CORS proxy or try accessing through a server-side request.";
-                }
                 
                 // Define a helper function to convert headers
                 const safeConvertHeaders = (headers: any[] = []) => {
@@ -455,27 +528,65 @@ export function createSOAPNetworkRequestStream(
                   }))
                 };
                 
-                // Create an error response that will be displayed in the UI
-                const errorResponse: HoppSOAPResponse = {
-                  type: "fail",
-                  req,
-                  error: new Error(errorMessage),
-                  statusCode: processedRes.statusCode || 0,
-                  headers: safeConvertHeaders(processedRes.headers),
-                  // Include the actual response body plus our error message for context
-                  body: typeof processedRes.body === 'string' ? 
-                         `<!-- ${errorMessage} -->\n\n${processedRes.body}` : 
-                         `<!-- ${errorMessage} -->`
-                };
+                // Create response body for UI
+                const corsMessage = req.endpoint.includes('dneonline.com') ?
+                  "Calculator service has CORS restrictions. Enable the CORS proxy in the UI." :
+                  "This service has CORS restrictions. Enable a CORS proxy in the UI."
                 
-                response.next(errorResponse);
-                onHistoryUpdate?.(req, errorResponse);
-                response.complete();
-                cleanup();
-                return;
+                // Return a successful response with CORS metadata
+                // We use type assertion to add meta property that's not in the original type
+                return {
+                  type: "success", // Change from "fail" to "success" to not trigger error UI
+                  req,
+                  statusCode: 0,
+                  headers: safeConvertHeaders(processedRes.headers),
+                  body: typeof processedRes.body === 'string' ? 
+                    processedRes.body : 
+                    '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><CORSDetected>true</CORSDetected></soap:Body></soap:Envelope>',
+                  meta: {
+                    corsDetected: true,
+                    corsMessage: corsMessage
+                  }
+                } as HoppSOAPResponse & { meta: { corsDetected: boolean, corsMessage: string } };
               }
               
+              // 2. Check for empty responses that should have content
+              if (processedRes.statusCode > 0 && (!processedRes.body || processedRes.body === "")) {
+                console.warn("Response status indicates success but body is empty")
+                
+                // Create a warning message
+                const warningMessage = "Response status indicates success but no body was received. " +
+                                      "This could indicate a server issue or incorrect Content-Type handling.";
+                
+                // Convert the empty response to a warning response
+                processedRes.body = `<warning>\n  <message>${warningMessage}</message>\n  <statusCode>${processedRes.statusCode}</statusCode>\n</warning>`;
+              }
+              
+              // 3. Check for non-XML responses to SOAP requests
+              if (processedRes.statusCode > 0 && typeof processedRes.body === 'string' && 
+                  !processedRes.body.trim().startsWith('<') && !processedRes.body.includes('Envelope')) {
+                console.warn("Response doesn't appear to be XML/SOAP")
+                
+                // Wrap non-XML responses in XML for better display
+                if (processedRes.body.trim().startsWith('{') || processedRes.body.trim().startsWith('[')) {
+                  // Looks like JSON, preserve it but wrap in XML
+                  processedRes.body = `<non-soap-response>\n  <content-type>Appears to be JSON</content-type>\n  <raw-content><![CDATA[${processedRes.body}]]></raw-content>\n</non-soap-response>`;
+                } else {
+                  // Some other format, wrap it generically
+                  processedRes.body = `<non-soap-response>\n  <content-type>Unknown</content-type>\n  <raw-content><![CDATA[${processedRes.body}]]></raw-content>\n</non-soap-response>`;
+                }
+              }
+              
+              // Process the final response
               const soapResponse = processSOAPResponse(processedRes, req)
+              
+              console.log("Final SOAP response ready to send to UI:", {
+                type: soapResponse.type,
+                statusCode: soapResponse.statusCode,
+                hasHeaders: !!soapResponse.headers,
+                hasError: !!soapResponse.error,
+                bodyLength: soapResponse.body ? (typeof soapResponse.body === 'string' ? soapResponse.body.length : 'binary') : 0
+              });
 
               response.next(soapResponse)
               onHistoryUpdate?.(req, soapResponse)
@@ -515,30 +626,45 @@ export function createSOAPNetworkRequestStream(
               response.complete()
               cleanup()
             })
-        } else {
+        } else if (res._tag === "Left") {
           if (isCancelled) return
           
           // Enhanced error message for interceptor errors
           let enhancedMessage = "Request failed"
+          const errorValue = res.left
+          
+          // Log the raw error to help with debugging
+          console.error("SOAP request interceptor error:", {
+            errorType: typeof errorValue,
+            errorValue: errorValue,
+            endpoint: req.endpoint,
+            operation: req.operation
+          });
+          
+          // Always log this specific error message for consistency with other error handlers
+          console.error("SOAP request failed with error:", 
+            typeof errorValue === 'string' ? errorValue : JSON.stringify(errorValue));
           
           // Handle the different error types
-          if (res.left === "cancellation") {
+          if (errorValue === "cancellation") {
             enhancedMessage = "Request was cancelled"
-          } else if (typeof res.left === 'object' && res.left && 'error' in res.left) {
+          } else if (typeof errorValue === 'object' && errorValue !== null && 'error' in errorValue) {
             // This is an object with error details
-            const errorObj = res.left as {
-              error: RelayError,
-              humanMessage: { heading: Function, description: Function }
+            const errorObj = errorValue as unknown as {
+              error: { message?: string },
+              humanMessage?: { heading?: Function, description?: Function }
             }
             
-            enhancedMessage = "Request failed: " + errorObj.error.message
+            enhancedMessage = "Request failed: " + 
+              (errorObj.error && errorObj.error.message ? errorObj.error.message : "Unknown error")
             
             // Check for CORS errors in the message
-            if (errorObj.error.message && 
-               (errorObj.error.message.includes('CORS') || 
-                errorObj.error.message.includes('origin') ||
-                errorObj.error.message.includes('blocked') ||
-                errorObj.error.message.includes('cross'))) {
+            const errorMessage = errorObj.error && errorObj.error.message ? errorObj.error.message : ""
+            if (errorMessage && 
+               (errorMessage.includes('CORS') || 
+                errorMessage.includes('origin') ||
+                errorMessage.includes('blocked') ||
+                errorMessage.includes('cross'))) {
               
               // Specific message for the Calculator service
               if (req.endpoint.includes('dneonline.com/calculator')) {
@@ -554,7 +680,7 @@ export function createSOAPNetworkRequestStream(
           }
           
           console.error("SOAP request failed:", {
-            original: res.left,
+            errorType: typeof errorValue,
             enhanced: enhancedMessage
           })
           
@@ -564,7 +690,7 @@ export function createSOAPNetworkRequestStream(
             req,
             error: new Error(enhancedMessage),
             // Add a formatted body with error details
-            body: `<soap-error>\n  <message>${enhancedMessage}</message>\n  <details>${JSON.stringify(res.left, null, 2)}</details>\n</soap-error>`,
+            body: `<soap-error>\n  <message>${enhancedMessage}</message>\n  <details>${JSON.stringify(String(errorValue), null, 2)}</details>\n</soap-error>`,
             statusCode: 0
           }
           

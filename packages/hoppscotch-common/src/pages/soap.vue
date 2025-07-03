@@ -132,7 +132,7 @@
                       >
                         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
+                      </svg>
                       </button>
                     </div>
                   </div>
@@ -777,88 +777,232 @@ const sendRequest = async (tabId: string) => {
   if (!tabDoc || tabDoc.type !== "request") return
 
   toast.info("Sending request...")
+  console.log("Starting SOAP request execution for tab:", tabId)
 
   try {
     const request = tabDoc.request
+    let modifiedRequest = { ...request }
     
-    // Add specific handling for Add operation
-    if (request.operation === "Add") {
-      console.log("Detected Add operation, ensuring correct formatting")
+    // --- STEP 1: Pre-request setup ---
+    // Apply specific headers based on operation and service
+    if (request.soapVersion !== "1.2") {
+      // For SOAP 1.1, we need SOAPAction header
+      // First, remove any existing SOAPAction headers to prevent duplicates
+      const headers = request.headers.filter(h => h.key.toLowerCase() !== "soapaction")
       
-      // Ensure we have a proper SOAPAction header for SOAP 1.1
-      if (request.soapVersion !== "1.2") {
-        // Remove any existing SOAPAction headers
-        const headers = request.headers.filter(h => h.key.toLowerCase() !== "soapaction")
-        
-        // Add a properly formatted SOAPAction header for the Calculator service
-        // Use the specific format required by the service
-        if (request.endpoint.includes('dneonline.com')) {
-          headers.push({
-            key: "SOAPAction",
-            value: `"http://tempuri.org/${request.operation}"`, // This is the key fix - use the full namespace
-            active: true
-          })
-          console.log("Added special SOAPAction header for dneonline Calculator service")
-        } else {
-          headers.push({
-            key: "SOAPAction",
-            value: `"${request.operation}"`,
-            active: true
-          })
-        }
-        
-        // Update the request with the new headers
-        request.headers = headers
-      }
+      // Determine correct SOAPAction value based on service and operation
+      let soapAction = request.operation || ""
       
-      // Ensure the endpoint is correct
-      if (!request.endpoint || !request.endpoint.startsWith("http")) {
-        toast.error("Invalid endpoint URL. Please make sure it starts with http:// or https://")
-        return
-      }
-      
-      // Add a helpful message about CORS for dneonline Calculator service
+      // Special handling for known services
       if (request.endpoint.includes('dneonline.com')) {
-        console.log("Note: The dneonline.com Calculator service may have CORS restrictions.")
-        console.log("If you don't get a response, try using a CORS proxy or check the browser console for errors.")
-        toast.info("Sending request to Calculator service. If you don't get a response, CORS restrictions may be in effect.")
+        // Calculator service requires a specific namespace format
+        soapAction = `"http://tempuri.org/${request.operation}"`
+        console.log("Using special namespace format for Calculator service:", soapAction)
+      } else if (request.endpoint.includes('webservicesserver')) {
+        // Some other services have specific formats
+        soapAction = `"${request.wsdlUrl}#${request.operation}"`
+      } else {
+        // Default format with quotes
+        soapAction = `"${soapAction}"`
       }
       
-      // Log the request for debugging
-      console.log("Sending Add operation request:", {
-        endpoint: request.endpoint,
-        headers: request.headers,
-        body: request.body
+      headers.push({
+        key: "SOAPAction",
+        value: soapAction,
+        active: true
+      })
+      
+      // Update the request with corrected headers
+      modifiedRequest.headers = headers
+      console.log("Applied SOAP 1.1 headers:", headers)
+    }
+    
+    // --- STEP 2: CORS and endpoint handling ---
+    // Check for invalid endpoints
+    if (!modifiedRequest.endpoint || !modifiedRequest.endpoint.startsWith("http")) {
+      toast.error("Invalid endpoint URL. Please make sure it starts with http:// or https://")
+      return
+    }
+    
+    // Don't preemptively warn about CORS - let the actual request determine if there are issues
+    // This allows direct SOAP requests to work like a desktop SOAP client when possible
+    
+    // Only log for debugging purposes
+    if (!modifiedRequest.endpoint.includes('localhost') && 
+        !modifiedRequest.endpoint.startsWith(window.location.origin)) {
+      console.log("External endpoint detected. Will proceed without proxy unless CORS errors occur.")
+      
+      // Check if the endpoint already uses a proxy
+      const isUsingProxy = modifiedRequest.endpoint.includes('corsproxy.io') || 
+                          modifiedRequest.endpoint.includes('allorigins.win') ||
+                          modifiedRequest.endpoint.includes('cors-anywhere');
+                          
+      if (isUsingProxy) {
+        console.log("Endpoint is already using a CORS proxy:", modifiedRequest.endpoint)
+      }
+    }
+    
+    // --- STEP 3: Content-Type header correction ---
+    // Ensure proper Content-Type for SOAP requests
+    let hasContentType = false
+    modifiedRequest.headers.forEach(h => {
+      if (h.key.toLowerCase() === 'content-type') {
+        hasContentType = true
+        // Fix potential format issues in Content-Type header
+        if (modifiedRequest.soapVersion === "1.2" && !h.value.includes('soap+xml')) {
+          h.value = "application/soap+xml;charset=UTF-8"
+        } else if (modifiedRequest.soapVersion !== "1.2" && !h.value.includes('xml')) {
+          h.value = "text/xml;charset=UTF-8"
+        }
+      }
+    })
+    
+    // Add Content-Type if missing
+    if (!hasContentType) {
+      modifiedRequest.headers.push({
+        key: "Content-Type",
+        value: modifiedRequest.soapVersion === "1.2" 
+          ? "application/soap+xml;charset=UTF-8" 
+          : "text/xml;charset=UTF-8",
+        active: true
       })
     }
     
-    const { stream, cancel } = await tabService.sendRequest(request)
+    // --- STEP 4: Validate SOAP Envelope ---
+    // Basic validation of SOAP envelope structure
+    if (modifiedRequest.body) {
+      if (!modifiedRequest.body.includes('<Envelope') && 
+          !modifiedRequest.body.includes('<soap:Envelope') &&
+          !modifiedRequest.body.includes('<soapenv:Envelope')) {
+        toast.error("Invalid SOAP request: Missing SOAP Envelope")
+        console.error("Invalid SOAP envelope:", modifiedRequest.body)
+        return
+      }
+    } else {
+      toast.error("Empty request body")
+      return
+    }
+
+    // Log the final request
+    console.log("Sending SOAP request with modified parameters:", {
+      endpoint: modifiedRequest.endpoint,
+      soapVersion: modifiedRequest.soapVersion,
+      operation: modifiedRequest.operation,
+      headers: modifiedRequest.headers,
+      bodyLength: modifiedRequest.body?.length || 0
+    })
     
-    const subscription = stream.subscribe((response) => {
-      if (response.type !== "loading") {
-        console.log("Received response:", response)
-        
-        // Handle specific error cases
-        if (response.type === "network_fail") {
-          console.error("Network failure:", response.error)
-          toast.error(`Network error: ${response.error instanceof Error ? response.error.message : 'Unknown error'}`)
-        } else if (response.type === "fail") {
-          console.error("Request failed:", response)
-          toast.error(`Request failed with status ${response.statusCode || 'unknown'}`)
+    // --- STEP 5: Execute the request ---
+    const { stream, cancel } = await tabService.sendRequest(modifiedRequest)
+    
+    // Set up a timeout to detect stuck requests
+    const timeoutId = setTimeout(() => {
+      console.warn("SOAP request potentially stuck - no response after 30 seconds")
+      toast.error("Request may be stuck. Check network tab for CORS issues or try using a proxy.")
+    }, 30000)
+    
+    const subscription = stream.subscribe({
+      next: (response) => {
+        if (response.type !== "loading") {
+          // Clear the timeout since we got a response
+          clearTimeout(timeoutId)
+          
+          console.log("Received SOAP response:", {
+            type: response.type,
+            statusCode: response.statusCode,
+            bodyLength: response.body ? (typeof response.body === 'string' ? response.body.length : 'binary data') : 0
+          })
+          
+          // Handle specific response types
+          if (response.type === "network_fail") {
+            console.error("Network failure:", response.error)
+            
+            // Detect CORS errors specifically
+            const errorMsg = response.error instanceof Error ? response.error.message : String(response.error);
+            const isCORSError = errorMsg.includes('CORS') || errorMsg.includes('cross-origin');
+            
+            if (isCORSError) {
+              // For CORS errors, provide more helpful message
+              toast.error(`CORS error: The server doesn't allow browser access. You can try enabling the CORS proxy.`)
+              
+              // Add CORS detection metadata to help the UI show the proxy toggle
+              // Since meta doesn't exist on HoppSOAPResponse, we'll handle CORS detection differently
+              // The UI can detect CORS errors from the error message pattern
+              
+              console.log("CORS error detected:", response)
+            } else {
+              // For other network errors
+              toast.error(`Network error: ${errorMsg}`)
+            }
+          } else if (response.type === "fail") {
+            console.error("Request failed:", response)
+            toast.error(`Request failed with status ${response.statusCode || 'unknown'}`)
+          } else if (response.type === "success") {
+            // Check for SOAP faults in successful HTTP responses
+            if (typeof response.body === 'string' && response.body.includes('Fault>')) {
+              console.warn("SOAP Fault detected in response body")
+              toast.info("Request completed but contains a SOAP fault")
+            } else {
+              toast.success(`Request completed with status ${response.statusCode}`)
+            }
+          }
+          
+          // Set the response in the tab
+          tabService.setResponse(tabId, response)
         }
-        
-        // Use the setResponse method instead of updateTabDocument
-        tabService.setResponse(tabId, response)
+      },
+      error: (err) => {
+        clearTimeout(timeoutId)
+        console.error("Error in request stream:", err)
+        toast.error(`Stream error: ${err instanceof Error ? err.message : String(err)}`)
+      },
+      complete: () => {
+        clearTimeout(timeoutId)
+        console.log("Request stream completed")
       }
     })
     
     return () => {
+      clearTimeout(timeoutId)
       subscription.unsubscribe()
       cancel()
     }
   } catch (error) {
-    console.error("Error sending SOAP request:", error)
-    toast.error(`Something went wrong: ${error instanceof Error ? error.message : String(error)}`)
+    // Extract detailed error information
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : 'No stack trace';
+    
+    // Get the request information from the tab document
+    const tabDoc = tabService.getTabDocument(tabId);
+    const requestInfo = tabDoc && tabDoc.type === "request" ? tabDoc.request : null;
+    
+    console.error("Error sending SOAP request:", {
+      message: errorMessage,
+      stack: errorStack,
+      endpoint: requestInfo?.endpoint || "unknown",
+      operation: requestInfo?.operation || "unknown",
+      error: error
+    });
+    
+    // Log full error details for debugging
+    console.error("SOAP request failed with error:", errorMessage);
+    
+    // Create a more detailed error response
+    const errorResponse = {
+      type: "network_fail",
+      statusCode: 0,
+      error: error,
+      body: `<soap-error>\n  <message>${errorMessage}</message>\n  <details>${JSON.stringify({
+        endpoint: requestInfo?.endpoint || "unknown",
+        operation: requestInfo?.operation || "unknown"
+      }, null, 2)}</details>\n</soap-error>`
+    };
+    
+    // Set this error response in the tab
+    tabService.setResponse(tabId, errorResponse);
+    
+    // Show user-friendly error message
+    toast.error(`Request failed: ${errorMessage}`);
   }
 }
 

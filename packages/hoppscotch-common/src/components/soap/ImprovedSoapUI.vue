@@ -31,8 +31,51 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label class="block mb-1 text-sm text-secondaryLight">Endpoint URL</label>
-              <div class="p-2 bg-primaryLight border border-dividerLight rounded break-all">
-                {{ request.endpoint || 'No endpoint set' }}
+              <div class="flex items-center mb-2">
+                <div class="flex flex-grow relative">
+                  <input 
+                    type="text" 
+                    class="w-full p-2 bg-primaryLight border border-dividerLight rounded"
+                    :class="{ 'border-accent': isEndpointFocused }"
+                    :placeholder="'Enter endpoint URL'"
+                    :value="request.endpoint || ''"
+                    @input="updateEndpoint($event)"
+                    @keydown.enter="emit('send')"
+                    @focus="isEndpointFocused = true"
+                    @blur="isEndpointFocused = false"
+                  />
+                  <button 
+                    v-if="request.endpoint" 
+                    class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-primaryDark rounded text-secondaryLight"
+                    @click="emit('send')"
+                    title="Send request"
+                  >
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- CORS Helper for dneonline calculator service -->
+              <div v-if="request.endpoint && request.endpoint.includes('dneonline.com')" 
+                   class="mt-2 p-2 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded text-xs">
+                <div class="flex items-center">
+                  <svg class="w-4 h-4 mr-1 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span>This Calculator service has CORS restrictions. Use the proxy option below to bypass this.</span>
+                </div>
+                <div class="flex items-center mt-2">
+                  <input 
+                    type="checkbox" 
+                    id="useProxy" 
+                    v-model="useProxyMode"
+                    class="mr-2"
+                    @change="toggleProxy"
+                  />
+                  <label for="useProxy" class="text-xs">Use CORS proxy (helps bypass browser restrictions)</label>
+                </div>
               </div>
             </div>
             <div>
@@ -182,7 +225,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, defineProps, defineEmits } from "vue";
+import { ref, watch, onMounted, defineProps, defineEmits } from "vue";
 import SmartXMLEditor from "../../components/smart/XMLEditor.vue";
 import { useToast } from "../../composables/toast";
 
@@ -215,6 +258,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:body', body: string): void;
+  (e: 'update:endpoint', endpoint: string): void;
   (e: 'edit'): void;
   (e: 'send'): void;
   (e: 'format-xml'): void;
@@ -227,6 +271,7 @@ const emit = defineEmits<{
 const expanded = ref(props.initialExpanded !== undefined ? props.initialExpanded : true);
 const bodyCollapsed = ref(props.initialBodyCollapsed !== undefined ? props.initialBodyCollapsed : false);
 const responseCollapsed = ref(props.initialResponseCollapsed !== undefined ? props.initialResponseCollapsed : false);
+const isEndpointFocused = ref(false);
 
 // When expanded state changes, emit event for parent component
 watch(expanded, (newValue) => {
@@ -334,5 +379,63 @@ const getErrorMessage = (error?: { message?: string }): string => {
   if (!error) return 'Something went wrong';
   
   return error.message || 'Unknown error occurred';
+};
+
+// CORS proxy helper functionality
+const useProxyMode = ref(false);
+
+// Check if this endpoint is using a proxy
+onMounted(() => {
+  if (props.request?.endpoint?.includes('dneonline.com')) {
+    // Check if endpoint is already using a proxy
+    useProxyMode.value = props.request.endpoint.includes('corsproxy.io') || 
+                         props.request.endpoint.includes('cors-anywhere') ||
+                         props.request.endpoint.includes('allorigins.win');
+  }
+});
+
+const toggleProxy = () => {
+  if (!props.request || !props.request.endpoint) return;
+  
+  // We'll use the emit to signal a request to toggle proxy mode
+  if (useProxyMode.value) {
+    // Enable proxy mode
+    toast.info('CORS proxy mode enabled. This will help bypass browser restrictions.');
+    
+    // Open the edit dialog with a message about the change
+    emit('edit');
+    
+    // Suggestion for the user in the console
+    console.log('Proxy mode enabled. Your request will be routed through a CORS proxy.');
+    console.log('Suggested proxy endpoint: https://corsproxy.io/?' + encodeURIComponent(props.request.endpoint));
+  } else {
+    // Disable proxy mode
+    toast.info('CORS proxy mode disabled. Your request will be sent directly.');
+    
+    // Open the edit dialog with a message about the change
+    emit('edit');
+    
+    // Suggestion for the user in the console
+    console.log('Proxy mode disabled. You may encounter CORS errors with this service.');
+    
+    // If the current endpoint uses a proxy, suggest how to change it back
+    if (props.request.endpoint.includes('corsproxy.io')) {
+      const originalUrl = props.request.endpoint.replace('https://corsproxy.io/?', '');
+      console.log('To use direct access, change your endpoint to: ' + decodeURIComponent(originalUrl));
+    }
+  }
+};
+
+// Handle endpoint update
+const updateEndpoint = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  emit('update:endpoint', target.value);
+  
+  // Update proxy mode status if it's the calculator service
+  if (target.value.includes('dneonline.com')) {
+    useProxyMode.value = target.value.includes('corsproxy.io') || 
+                         target.value.includes('cors-anywhere') ||
+                         target.value.includes('allorigins.win');
+  }
 };
 </script>

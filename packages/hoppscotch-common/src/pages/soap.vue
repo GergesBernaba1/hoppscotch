@@ -165,6 +165,7 @@
               :loading="tab.document.response?.type === 'loading'"
               :initialExpanded="tabExpanded[tab.id] !== false"
               @update:body="updateRequestBody(tab.id, $event)"
+              @update:endpoint="updateRequestEndpoint(tab.id, $event)"
               @update:expanded="updateTabExpanded(tab.id, $event)"
               @edit="editRequest(tab.id)"
               @send="sendRequest(tab.id)"
@@ -733,6 +734,30 @@ const updateRequestBody = (tabId: string, newBody: string) => {
   }
 }
 
+// Function to update the endpoint URL of a request
+const updateRequestEndpoint = (tabId: string, newEndpoint: string) => {
+  const tab = tabsList.value.find(tab => tab.id === tabId)
+  if (!tab || tab.document.type !== "request") return
+  
+  try {
+    if (tab.document.request.endpoint !== newEndpoint) {
+      // Update the endpoint directly using the updateRequest method
+      tabService.updateRequest(tabId, {
+        ...tab.document.request,
+        endpoint: newEndpoint
+      })
+      
+      // If this is a Calculator service, check if we need special handling for CORS
+      if (newEndpoint.includes('dneonline.com')) {
+        console.log("Updated Calculator service endpoint:", newEndpoint)
+      }
+    }
+  } catch (error) {
+    console.error("Error updating endpoint:", error)
+    toast.error("Failed to update endpoint")
+  }
+}
+
 // Save edited request
 const saveEditedRequest = (updatedRequest: HoppSOAPRequest) => {
   if (currentEditingTab.value) {
@@ -755,10 +780,73 @@ const sendRequest = async (tabId: string) => {
 
   try {
     const request = tabDoc.request
+    
+    // Add specific handling for Add operation
+    if (request.operation === "Add") {
+      console.log("Detected Add operation, ensuring correct formatting")
+      
+      // Ensure we have a proper SOAPAction header for SOAP 1.1
+      if (request.soapVersion !== "1.2") {
+        // Remove any existing SOAPAction headers
+        const headers = request.headers.filter(h => h.key.toLowerCase() !== "soapaction")
+        
+        // Add a properly formatted SOAPAction header for the Calculator service
+        // Use the specific format required by the service
+        if (request.endpoint.includes('dneonline.com')) {
+          headers.push({
+            key: "SOAPAction",
+            value: `"http://tempuri.org/${request.operation}"`, // This is the key fix - use the full namespace
+            active: true
+          })
+          console.log("Added special SOAPAction header for dneonline Calculator service")
+        } else {
+          headers.push({
+            key: "SOAPAction",
+            value: `"${request.operation}"`,
+            active: true
+          })
+        }
+        
+        // Update the request with the new headers
+        request.headers = headers
+      }
+      
+      // Ensure the endpoint is correct
+      if (!request.endpoint || !request.endpoint.startsWith("http")) {
+        toast.error("Invalid endpoint URL. Please make sure it starts with http:// or https://")
+        return
+      }
+      
+      // Add a helpful message about CORS for dneonline Calculator service
+      if (request.endpoint.includes('dneonline.com')) {
+        console.log("Note: The dneonline.com Calculator service may have CORS restrictions.")
+        console.log("If you don't get a response, try using a CORS proxy or check the browser console for errors.")
+        toast.info("Sending request to Calculator service. If you don't get a response, CORS restrictions may be in effect.")
+      }
+      
+      // Log the request for debugging
+      console.log("Sending Add operation request:", {
+        endpoint: request.endpoint,
+        headers: request.headers,
+        body: request.body
+      })
+    }
+    
     const { stream, cancel } = await tabService.sendRequest(request)
     
     const subscription = stream.subscribe((response) => {
       if (response.type !== "loading") {
+        console.log("Received response:", response)
+        
+        // Handle specific error cases
+        if (response.type === "network_fail") {
+          console.error("Network failure:", response.error)
+          toast.error(`Network error: ${response.error instanceof Error ? response.error.message : 'Unknown error'}`)
+        } else if (response.type === "fail") {
+          console.error("Request failed:", response)
+          toast.error(`Request failed with status ${response.statusCode || 'unknown'}`)
+        }
+        
         // Use the setResponse method instead of updateTabDocument
         tabService.setResponse(tabId, response)
       }
@@ -770,7 +858,7 @@ const sendRequest = async (tabId: string) => {
     }
   } catch (error) {
     console.error("Error sending SOAP request:", error)
-    toast.error("Something went wrong")
+    toast.error(`Something went wrong: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
 
@@ -836,9 +924,16 @@ const generateSampleRequestBody = (operation: WSDLOperation, soapVersion: string
     
     if (isCalculatorLike) {
       // This is a Calculator-like service, use the standard parameter pattern
-      parameterXml = `
+      // For Add operation specifically, use numeric values instead of placeholders for better testing
+      if (operationName === 'Add') {
+        parameterXml = `
+         <${targetPrefix}:intA>10</${targetPrefix}:intA>
+         <${targetPrefix}:intB>20</${targetPrefix}:intB>`;
+      } else {
+        parameterXml = `
          <${targetPrefix}:intA>?</${targetPrefix}:intA>
          <${targetPrefix}:intB>?</${targetPrefix}:intB>`;
+      }
     } else {
       // It has Calculator operation names but doesn't follow the expected pattern
       // Use generic parameter placeholders instead
@@ -908,16 +1003,6 @@ const generateSampleRequestBody = (operation: WSDLOperation, soapVersion: string
       </${targetPrefix}:${inputElement}>
    </${soapPrefix}:Body>
 </${soapPrefix}:Envelope>`;
-  
-  // Format the final SOAP envelope with proper indentation
-  // This matches the SoapUI format exactly for better compatibility
-  return `<${soapPrefix}:Envelope xmlns:${soapPrefix}="${soapNS}" xmlns:${targetPrefix}="${targetNamespace}">
-   <${soapPrefix}:Header/>
-   <${soapPrefix}:Body>
-      <${targetPrefix}:${inputElement}>${parameterXml}
-      </${targetPrefix}:${inputElement}>
-   </${soapPrefix}:Body>
-</${soapPrefix}:Envelope}`;
 }
 
 // Helper function to format file size

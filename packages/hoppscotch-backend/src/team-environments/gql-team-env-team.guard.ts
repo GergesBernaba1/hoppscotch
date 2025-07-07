@@ -11,7 +11,7 @@ import {
 import { TeamService } from 'src/team/team.service';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import * as E from 'fp-ts/Either';
-import { TeamMemberRole } from '@prisma/client';
+import { TeamMemberRole } from 'src/team/team.model';
 import { throwErr } from 'src/utils';
 
 /**
@@ -52,6 +52,6 @@ export class GqlTeamEnvTeamGuard implements CanActivate {
     );
     if (!member) throwErr(TEAM_ENVIRONMENT_NOT_TEAM_MEMBER);
 
-    return requireRoles.includes(member.role);
+    return requireRoles.includes(member.role as unknown as TeamMemberRole);
   }
 }

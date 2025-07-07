@@ -1,181 +1,192 @@
--- Drop ENUM types (not supported in SQL Server)
--- CREATE TYPE "ReqType" AS ENUM ('REST', 'GQL');
--- CREATE TYPE "TeamMemberRole" AS ENUM ('OWNER', 'VIEWER', 'EDITOR');
+-- CreateEnum
+CREATE TYPE "ReqType" AS ENUM ('REST', 'GQL');
+
+-- CreateEnum
+CREATE TYPE "TeamMemberRole" AS ENUM ('OWNER', 'VIEWER', 'EDITOR');
 
 -- CreateTable
 CREATE TABLE "Team" (
-    "id" NVARCHAR(255) NOT NULL,
-    "name" NVARCHAR(255) NOT NULL,
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+
     CONSTRAINT "Team_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "TeamMember" (
-    "id" NVARCHAR(255) NOT NULL,
-    "role" NVARCHAR(50) NOT NULL,
-    "userUid" NVARCHAR(255) NOT NULL,
-    "teamID" NVARCHAR(255) NOT NULL,
+    "id" TEXT NOT NULL,
+    "role" "TeamMemberRole" NOT NULL,
+    "userUid" TEXT NOT NULL,
+    "teamID" TEXT NOT NULL,
+
     CONSTRAINT "TeamMember_pkey" PRIMARY KEY ("id")
 );
-ALTER TABLE "TeamMember" ADD CONSTRAINT CHK_TeamMember_role CHECK (role IN ('OWNER', 'VIEWER', 'EDITOR'));
 
 -- CreateTable
 CREATE TABLE "TeamInvitation" (
-    "id" NVARCHAR(255) NOT NULL,
-    "teamID" NVARCHAR(255) NOT NULL,
-    "creatorUid" NVARCHAR(255) NOT NULL,
-    "inviteeEmail" NVARCHAR(255) NOT NULL,
-    "inviteeRole" NVARCHAR(50) NOT NULL,
+    "id" TEXT NOT NULL,
+    "teamID" TEXT NOT NULL,
+    "creatorUid" TEXT NOT NULL,
+    "inviteeEmail" TEXT NOT NULL,
+    "inviteeRole" "TeamMemberRole" NOT NULL,
+
     CONSTRAINT "TeamInvitation_pkey" PRIMARY KEY ("id")
 );
-ALTER TABLE "TeamInvitation" ADD CONSTRAINT CHK_TeamInvitation_inviteeRole CHECK (inviteeRole IN ('OWNER', 'VIEWER', 'EDITOR'));
 
 -- CreateTable
 CREATE TABLE "TeamCollection" (
-    "id" NVARCHAR(255) NOT NULL,
-    "parentID" NVARCHAR(255),
-    "teamID" NVARCHAR(255) NOT NULL,
-    "title" NVARCHAR(255) NOT NULL,
+    "id" TEXT NOT NULL,
+    "parentID" TEXT,
+    "teamID" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
     "orderIndex" INTEGER NOT NULL,
-    "createdOn" DATETIME2(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedOn" DATETIME2(3) NOT NULL,
+    "createdOn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedOn" TIMESTAMP(3) NOT NULL,
+
     CONSTRAINT "TeamCollection_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "TeamRequest" (
-    "id" NVARCHAR(255) NOT NULL,
-    "collectionID" NVARCHAR(255) NOT NULL,
-    "teamID" NVARCHAR(255) NOT NULL,
-    "title" NVARCHAR(255) NOT NULL,
-    "request" NVARCHAR(MAX) NOT NULL, -- Changed from JSONB to NVARCHAR(MAX)
+    "id" TEXT NOT NULL,
+    "collectionID" TEXT NOT NULL,
+    "teamID" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "request" JSONB NOT NULL,
     "orderIndex" INTEGER NOT NULL,
-    "createdOn" DATETIME2(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedOn" DATETIME2(3) NOT NULL,
+    "createdOn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedOn" TIMESTAMP(3) NOT NULL,
+
     CONSTRAINT "TeamRequest_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Shortcode" (
-    "id" NVARCHAR(255) NOT NULL,
-    "request" NVARCHAR(MAX) NOT NULL, -- Changed from JSONB to NVARCHAR(MAX)
-    "creatorUid" NVARCHAR(255),
-    "createdOn" DATETIME2(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "id" TEXT NOT NULL,
+    "request" JSONB NOT NULL,
+    "creatorUid" TEXT,
+    "createdOn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "Shortcode_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "TeamEnvironment" (
-    "id" NVARCHAR(255) NOT NULL,
-    "teamID" NVARCHAR(255) NOT NULL,
-    "name" NVARCHAR(255) NOT NULL,
-    "variables" NVARCHAR(MAX) NOT NULL, -- Changed from JSONB to NVARCHAR(MAX)
+    "id" TEXT NOT NULL,
+    "teamID" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "variables" JSONB NOT NULL,
+
     CONSTRAINT "TeamEnvironment_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "User" (
-    "uid" NVARCHAR(255) NOT NULL,
-    "displayName" NVARCHAR(255),
-    "email" NVARCHAR(255),
-    "photoURL" NVARCHAR(255),
-    "isAdmin" BIT NOT NULL DEFAULT 0,
-    "refreshToken" NVARCHAR(255),
-    "currentRESTSession" NVARCHAR(MAX), -- Changed from JSONB to NVARCHAR(MAX)
-    "currentGQLSession" NVARCHAR(MAX), -- Changed from JSONB to NVARCHAR(MAX)
-    "createdOn" DATETIME2(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "uid" TEXT NOT NULL,
+    "displayName" TEXT,
+    "email" TEXT,
+    "photoURL" TEXT,
+    "isAdmin" BOOLEAN NOT NULL DEFAULT false,
+    "refreshToken" TEXT,
+    "currentRESTSession" JSONB,
+    "currentGQLSession" JSONB,
+    "createdOn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "User_pkey" PRIMARY KEY ("uid")
 );
 
 -- CreateTable
 CREATE TABLE "Account" (
-    "id" NVARCHAR(255) NOT NULL,
-    "userId" NVARCHAR(255) NOT NULL,
-    "provider" NVARCHAR(255) NOT NULL,
-    "providerAccountId" NVARCHAR(255) NOT NULL,
-    "providerRefreshToken" NVARCHAR(MAX),
-    "providerAccessToken" NVARCHAR(MAX),
-    "providerScope" NVARCHAR(255),
-    "loggedIn" DATETIME2(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "provider" TEXT NOT NULL,
+    "providerAccountId" TEXT NOT NULL,
+    "providerRefreshToken" TEXT,
+    "providerAccessToken" TEXT,
+    "providerScope" TEXT,
+    "loggedIn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "Account_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "VerificationToken" (
-    "deviceIdentifier" NVARCHAR(255) NOT NULL,
-    "token" NVARCHAR(255) NOT NULL,
-    "userUid" NVARCHAR(255) NOT NULL,
-    "expiresOn" DATETIME2(3) NOT NULL
+    "deviceIdentifier" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "userUid" TEXT NOT NULL,
+    "expiresOn" TIMESTAMP(3) NOT NULL
 );
 
 -- CreateTable
 CREATE TABLE "UserSettings" (
-    "id" NVARCHAR(255) NOT NULL,
-    "userUid" NVARCHAR(255) NOT NULL,
-    "properties" NVARCHAR(MAX) NOT NULL, -- Changed from JSONB to NVARCHAR(MAX)
-    "updatedOn" DATETIME2(3) NOT NULL,
+    "id" TEXT NOT NULL,
+    "userUid" TEXT NOT NULL,
+    "properties" JSONB NOT NULL,
+    "updatedOn" TIMESTAMP(3) NOT NULL,
+
     CONSTRAINT "UserSettings_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "UserHistory" (
-    "id" NVARCHAR(255) NOT NULL,
-    "userUid" NVARCHAR(255) NOT NULL,
-    "reqType" NVARCHAR(50) NOT NULL,
-    "request" NVARCHAR(MAX) NOT NULL, -- Changed from JSONB to NVARCHAR(MAX)
-    "responseMetadata" NVARCHAR(MAX) NOT NULL, -- Changed from JSONB to NVARCHAR(MAX)
-    "isStarred" BIT NOT NULL,
-    "executedOn" DATETIME2(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "id" TEXT NOT NULL,
+    "userUid" TEXT NOT NULL,
+    "reqType" "ReqType" NOT NULL,
+    "request" JSONB NOT NULL,
+    "responseMetadata" JSONB NOT NULL,
+    "isStarred" BOOLEAN NOT NULL,
+    "executedOn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     CONSTRAINT "UserHistory_pkey" PRIMARY KEY ("id")
 );
-ALTER TABLE "UserHistory" ADD CONSTRAINT CHK_UserHistory_reqType CHECK (reqType IN ('REST', 'GQL'));
 
 -- CreateTable
 CREATE TABLE "UserEnvironment" (
-    "id" NVARCHAR(255) NOT NULL,
-    "userUid" NVARCHAR(255) NOT NULL,
-    "name" NVARCHAR(255),
-    "variables" NVARCHAR(MAX) NOT NULL, -- Changed from JSONB to NVARCHAR(MAX)
-    "isGlobal" BIT NOT NULL,
+    "id" TEXT NOT NULL,
+    "userUid" TEXT NOT NULL,
+    "name" TEXT,
+    "variables" JSONB NOT NULL,
+    "isGlobal" BOOLEAN NOT NULL,
+
     CONSTRAINT "UserEnvironment_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "InvitedUsers" (
-    "adminUid" NVARCHAR(255) NOT NULL,
-    "adminEmail" NVARCHAR(255) NOT NULL,
-    "inviteeEmail" NVARCHAR(255) NOT NULL,
-    "invitedOn" DATETIME2(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "adminUid" TEXT NOT NULL,
+    "adminEmail" TEXT NOT NULL,
+    "inviteeEmail" TEXT NOT NULL,
+    "invitedOn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- CreateTable
 CREATE TABLE "UserRequest" (
-    "id" NVARCHAR(255) NOT NULL,
-    "collectionID" NVARCHAR(255) NOT NULL,
-    "userUid" NVARCHAR(255) NOT NULL,
-    "title" NVARCHAR(255) NOT NULL,
-    "request" NVARCHAR(MAX) NOT NULL, -- Changed from JSONB to NVARCHAR(MAX)
-    "type" NVARCHAR(50) NOT NULL,
+    "id" TEXT NOT NULL,
+    "collectionID" TEXT NOT NULL,
+    "userUid" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "request" JSONB NOT NULL,
+    "type" "ReqType" NOT NULL,
     "orderIndex" INTEGER NOT NULL,
-    "createdOn" DATETIME2(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedOn" DATETIME2(3) NOT NULL,
+    "createdOn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedOn" TIMESTAMP(3) NOT NULL,
+
     CONSTRAINT "UserRequest_pkey" PRIMARY KEY ("id")
 );
-ALTER TABLE "UserRequest" ADD CONSTRAINT CHK_UserRequest_type CHECK (type IN ('REST', 'GQL'));
 
 -- CreateTable
 CREATE TABLE "UserCollection" (
-    "id" NVARCHAR(255) NOT NULL,
-    "parentID" NVARCHAR(255),
-    "userUid" NVARCHAR(255) NOT NULL,
-    "title" NVARCHAR(255) NOT NULL,
+    "id" TEXT NOT NULL,
+    "parentID" TEXT,
+    "userUid" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
     "orderIndex" INTEGER NOT NULL,
-    "type" NVARCHAR(50) NOT NULL,
-    "createdOn" DATETIME2(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedOn" DATETIME2(3) NOT NULL,
+    "type" "ReqType" NOT NULL,
+    "createdOn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedOn" TIMESTAMP(3) NOT NULL,
+
     CONSTRAINT "UserCollection_pkey" PRIMARY KEY ("id")
 );
-ALTER TABLE "UserCollection" ADD CONSTRAINT CHK_UserCollection_type CHECK (type IN ('REST', 'GQL'));
 
 -- CreateIndex
 CREATE UNIQUE INDEX "TeamMember_teamID_userUid_key" ON "TeamMember"("teamID", "userUid");

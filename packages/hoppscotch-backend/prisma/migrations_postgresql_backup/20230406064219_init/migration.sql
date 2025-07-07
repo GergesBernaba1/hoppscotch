@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "ReqType" AS ENUM ('REST', 'GQL');
+--CREATE TYPE "ReqType" AS ENUM ('REST', 'GQL');
 
 -- CreateEnum
 CREATE TYPE "TeamMemberRole" AS ENUM ('OWNER', 'VIEWER', 'EDITOR');

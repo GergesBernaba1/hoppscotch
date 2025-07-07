@@ -1,0 +1,2 @@
+-- Baseline migration - current database state as of 2025-07-07
+-- This is a marker migration and doesn't apply any changes

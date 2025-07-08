@@ -334,15 +334,6 @@ export function transformCollectionData(
 const ENCRYPTION_ALGORITHM = 'aes-256-cbc';
 
 /**
- * Derives a 32-byte key from the input string
- * @param key The input key string
- * @returns A 32-byte buffer suitable for AES-256
- */
-function deriveKey(key: string): Buffer {
-  return crypto.createHash('sha256').update(key).digest();
-}
-
-/**
  * Encrypts a text using a key
  * @param text The text to encrypt
  * @param key The key to use for encryption
@@ -354,8 +345,11 @@ export function encrypt(text: string, key = process.env.DATA_ENCRYPTION_KEY) {
   if (text === null || text === undefined) return text;
 
   const iv = crypto.randomBytes(16);
-  const derivedKey = deriveKey(key);
-  const cipher = crypto.createCipheriv(ENCRYPTION_ALGORITHM, derivedKey, iv);
+  const cipher = crypto.createCipheriv(
+    ENCRYPTION_ALGORITHM,
+    Buffer.from(key),
+    iv,
+  );
   let encrypted = cipher.update(text);
   encrypted = Buffer.concat([encrypted, cipher.final()]);
   return iv.toString('hex') + ':' + encrypted.toString('hex');
@@ -380,8 +374,11 @@ export function decrypt(
   const textParts = encryptedData.split(':');
   const iv = Buffer.from(textParts.shift(), 'hex');
   const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-  const derivedKey = deriveKey(key);
-  const decipher = crypto.createDecipheriv(ENCRYPTION_ALGORITHM, derivedKey, iv);
+  const decipher = crypto.createDecipheriv(
+    ENCRYPTION_ALGORITHM,
+    Buffer.from(key),
+    iv,
+  );
   let decrypted = decipher.update(encryptedText);
   decrypted = Buffer.concat([decrypted, decipher.final()]);
   return decrypted.toString();

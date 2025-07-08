@@ -16,8 +16,8 @@ param (
     [switch]$AcceptDataLoss = $false
 )
 
-# Set the database connection string
-$Env:DATABASE_URL = "sqlserver://db.expertapps.com.sa:1444;database=hoppscotch;user=sa;password=IqUB6l6sA725;trustServerCertificate=true;multipleActiveResultSets=true;applicationIntent=ReadWrite"
+# Set the database connection string - Replace with your SQL Server details
+$Env:DATABASE_URL = "sqlserver://your-server:1433;database=hoppscotch;user=your-username;password=your-password;trustServerCertificate=true;multipleActiveResultSets=true;applicationIntent=ReadWrite"
 
 function Get-DatabaseTables {
     $server = "db.expertapps.com.sa"

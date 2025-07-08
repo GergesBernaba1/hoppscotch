@@ -21,14 +21,14 @@ export class UserCollection {
   })
   data: string;
 
-  @Field(() => ReqType, {
+  @Field(() => String, {
     description: 'Type of the user collection',
   })
-  type: ReqType;
+  type: string;
 
   parentID: string | null;
 
-  userID: string;
+  orderIndex: number;
 }
 
 @ObjectType()
@@ -53,40 +53,31 @@ export class UserCollectionRemovedData {
   })
   id: string;
 
-  @Field(() => ReqType, {
+  @Field(() => String, {
     description: 'Type of the user collection',
   })
-  type: ReqType;
+  type: string;
 }
 
-registerEnumType(ReqType, {
-  name: 'CollType',
-});
-
 @ObjectType()
-export class UserCollectionExportJSONData {
-  @Field(() => ID, {
-    description: 'Stringified contents of the collection',
+export class UserCollectionExportData {
+  @Field({
+    description: 'JSON string representing the collection',
   })
   exportedCollection: string;
 
-  @Field(() => ReqType, {
+  @Field(() => String, {
     description: 'Type of the user collection',
   })
-  collectionType: ReqType;
+  collectionType: string;
 }
 
 @ObjectType()
 export class UserCollectionDuplicatedData {
-  @Field(() => ID, {
-    description: 'ID of the user collection',
-  })
-  id: string;
-
   @Field({
-    description: 'Displayed title of the user collection',
+    description: 'The UID of the user',
   })
-  title: string;
+  userUid: string;
 
   @Field({
     description: 'JSON string representing the collection data',
@@ -94,33 +85,14 @@ export class UserCollectionDuplicatedData {
   })
   data: string;
 
-  @Field(() => ReqType, {
+  @Field(() => String, {
     description: 'Type of the user collection',
   })
-  type: ReqType;
+  type: string;
 
   @Field({
     description: 'Parent ID of the duplicated User Collection',
     nullable: true,
   })
-  parentID: string | null;
-
-  @Field({
-    description: 'User ID of the duplicated User Collection',
-  })
-  userID: string;
-
-  @Field({
-    description: 'Child collections of the duplicated User Collection',
-  })
-  childCollections: string;
-
-  @Field(() => [UserRequest], {
-    description: 'Requests of the duplicated User Collection',
-  })
-  requests: UserRequest[];
+  parentID: string;
 }
-
-registerEnumType(ReqType, {
-  name: 'CollType',
-});

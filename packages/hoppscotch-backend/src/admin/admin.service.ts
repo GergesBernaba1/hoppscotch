@@ -96,11 +96,10 @@ export class AdminService {
     }
     if (!validateEmail(inviteeEmail)) return E.left(INVALID_EMAIL);
 
-    const alreadyInvitedUser = await this.prisma.invitedUsers.findFirst({
+    const alreadyInvitedUser = await this.prisma.invitedUser.findFirst({
       where: {
         inviteeEmail: {
-          equals: inviteeEmail,
-          mode: 'insensitive',
+          equals: inviteeEmail.toLowerCase(),
         },
       },
     });
@@ -119,7 +118,7 @@ export class AdminService {
     }
 
     // Add invitee email to the list of invited users by admin
-    const dbInvitedUser = await this.prisma.invitedUsers.create({
+    const dbInvitedUser = await this.prisma.invitedUser.create({
       data: {
         adminUid: adminUID,
         adminEmail: adminEmail,
@@ -171,9 +170,9 @@ export class AdminService {
     }
 
     try {
-      await this.prisma.invitedUsers.deleteMany({
+      await this.prisma.invitedUser.deleteMany({
         where: {
-          inviteeEmail: { in: inviteeEmails, mode: 'insensitive' },
+          inviteeEmail: { in: inviteeEmails.map(email => email.toLowerCase()) },
         },
       });
       return E.right(true);
@@ -193,7 +192,7 @@ export class AdminService {
       },
     });
 
-    const pendingInvitedUsers = await this.prisma.invitedUsers.findMany({
+    const pendingInvitedUsers = await this.prisma.invitedUser.findMany({
       take: paginationOption.take,
       skip: paginationOption.skip,
       orderBy: {
@@ -202,8 +201,7 @@ export class AdminService {
       where: {
         NOT: {
           inviteeEmail: {
-            in: userEmailObjs.map((user) => user.email),
-            mode: 'insensitive',
+            in: userEmailObjs.map((user) => user.email.toLowerCase()),
           },
         },
       },

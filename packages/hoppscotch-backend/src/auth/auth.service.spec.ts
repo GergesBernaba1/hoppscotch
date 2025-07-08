@@ -51,11 +51,13 @@ const user: AuthUser = {
   lastLoggedOn: currentTime,
   lastActiveOn: currentTime,
   createdOn: currentTime,
-  currentGQLSession: {},
-  currentRESTSession: {},
+  currentGQLSession: '',
+  currentRESTSession: '',
 };
 
 const passwordlessData: VerificationToken = {
+  id: 'verification-token-id',
+  identifier: 'magic-link',
   deviceIdentifier: 'k23hb7u7gdcujhb',
   token: 'jhhj24sdjvl',
   userUid: user.uid,
@@ -69,11 +71,21 @@ const magicLinkVerify: VerifyMagicDto = {
 
 const accountDetails: Account = {
   id: '123dcdc',
-  userId: user.uid,
+  userUid: user.uid,
+  type: 'oauth',
   provider: 'email',
   providerAccountId: user.uid,
-  providerRefreshToken: 'dscsdc',
-  providerAccessToken: 'sdcsdcsdc',
+  refresh_token: 'dscsdc',
+  access_token: 'sdcsdcsdc',
+  expires_at: null,
+  token_type: 'Bearer',
+  scope: 'user.email',
+  id_token: null,
+  session_state: null,
+  providerDisplayName: null,
+  providerEmail: null,
+  providerEmailVerified: null,
+  providerAccountName: null,
   providerScope: 'user.email',
   loggedIn: currentTime,
 };

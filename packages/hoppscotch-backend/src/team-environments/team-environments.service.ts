@@ -162,7 +162,7 @@ export class TeamEnvironmentsService {
       const result = await this.prisma.teamEnvironment.update({
         where: { id: id },
         data: {
-          variables: [],
+          variables: '[]',
         },
       });
 
@@ -197,7 +197,7 @@ export class TeamEnvironmentsService {
         data: {
           name: `${environment.name} - Duplicate`,
           teamID: environment.teamID,
-          variables: environment.variables as Prisma.JsonArray,
+          variables: environment.variables,
         },
       });
 

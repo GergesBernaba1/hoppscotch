@@ -28,7 +28,7 @@ export class PATAuthGuard implements CanActivate {
       throw new BadRequestException(
         createCLIErrorResponse(ACCESS_TOKEN_INVALID),
       );
-    request.user = userAccessToken.right.user;
+    request.user = userAccessToken.right.userUid;
 
     const accessToken = userAccessToken.right;
     if (accessToken.expiresOn === null) return true;

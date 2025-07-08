@@ -50,7 +50,8 @@ export class CreateUserRequestArgs {
   @Field({ description: 'content/body of the user request' })
   request: string;
 
-  type: ReqType;
+  @Field(() => String, { description: 'Type of the request' })
+  type: string;
 }
 
 @ArgsType()

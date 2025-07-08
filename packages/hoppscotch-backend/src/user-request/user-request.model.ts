@@ -26,7 +26,7 @@ export class UserRequest {
   @Field(() => ReqType, {
     description: 'Type (GRAPHQL/REST) of the user request',
   })
-  type: ReqType;
+  type: string;
 
   @Field(() => Date, {
     description: 'Date of the user request creation',

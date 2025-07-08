@@ -27,8 +27,8 @@ const user: AuthUser = {
   isAdmin: false,
   refreshToken: 'hbfvdkhjbvkdvdfjvbnkhjb',
   createdOn: currentTime,
-  currentGQLSession: {},
-  currentRESTSession: {},
+  currentGQLSession: '',
+  currentRESTSession: '',
   lastLoggedOn: currentTime,
   lastActiveOn: currentTime,
 };
@@ -42,6 +42,7 @@ const PATExpiresOn = new Date(
 const userAccessToken: PersonalAccessToken = {
   id: 'skfvhj8uvdfivb',
   userUid: user.uid,
+  name: 'test',
   label: 'test',
   token: '0140e328-b187-4823-ae4b-ed4bec832ac2',
   expiresOn: PATExpiresOn,

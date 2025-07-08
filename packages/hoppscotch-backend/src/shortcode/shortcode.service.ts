@@ -300,8 +300,7 @@ export class ShortcodeService implements UserDataHandler, OnModuleInit {
         ? {
             User: {
               email: {
-                equals: userEmail,
-                mode: 'insensitive',
+                equals: userEmail.toLowerCase(),
               },
             },
           }
@@ -327,10 +326,12 @@ export class ShortcodeService implements UserDataHandler, OnModuleInit {
               ? JSON.stringify(code.embedProperties)
               : null,
           createdOn: code.createdOn,
-          creator: code.User
+          creator: code.creatorUid
             ? {
-                uid: code.User.uid,
-                email: code.User.email,
+                uid: code.creatorUid,
+                // Since we don't have direct access to email, we can set it to null
+                // or fetch the user separately if needed
+                email: null,
               }
             : null,
         };

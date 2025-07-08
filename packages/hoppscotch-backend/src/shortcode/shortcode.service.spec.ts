@@ -51,8 +51,8 @@ const user: AuthUser = {
   lastLoggedOn: createdOn,
   lastActiveOn: createdOn,
   createdOn: createdOn,
-  currentGQLSession: {},
-  currentRESTSession: {},
+  currentGQLSession: '',
+  currentRESTSession: '',
 };
 
 const mockEmbed = {
@@ -76,24 +76,24 @@ const mockShortcode = {
 const shortcodes = [
   {
     id: 'blablabla',
-    request: {
+    request: JSON.stringify({
       hello: 'there',
-    },
-    embedProperties: {
+    }),
+    embedProperties: JSON.stringify({
       foo: 'bar',
-    },
+    }),
     creatorUid: user.uid,
     createdOn: new Date(),
     updatedOn: createdOn,
   },
   {
     id: 'blablabla1',
-    request: {
+    request: JSON.stringify({
       hello: 'there',
-    },
-    embedProperties: {
+    }),
+    embedProperties: JSON.stringify({
       foo: 'bar',
-    },
+    }),
     creatorUid: user.uid,
     createdOn: new Date(),
     updatedOn: createdOn,
@@ -103,12 +103,12 @@ const shortcodes = [
 const shortcodesWithUserEmail = [
   {
     id: 'blablabla',
-    request: {
+    request: JSON.stringify({
       hello: 'there',
-    },
-    embedProperties: {
+    }),
+    embedProperties: JSON.stringify({
       foo: 'bar',
-    },
+    }),
     creatorUid: user.uid,
     createdOn: new Date(),
     updatedOn: createdOn,
@@ -116,12 +116,12 @@ const shortcodesWithUserEmail = [
   },
   {
     id: 'blablabla1',
-    request: {
+    request: JSON.stringify({
       hello: 'there',
-    },
-    embedProperties: {
+    }),
+    embedProperties: JSON.stringify({
       foo: 'bar',
-    },
+    }),
     creatorUid: user.uid,
     createdOn: new Date(),
     updatedOn: createdOn,

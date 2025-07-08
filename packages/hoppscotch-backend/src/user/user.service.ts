@@ -155,6 +155,14 @@ export class UserService {
         provider: 'magic',
         providerAccountId: email,
         userUid: createdUser.uid,
+        type: 'oauth',
+        id_token: '',
+        refresh_token: '',
+        access_token: '',
+        expires_at: 0,
+        token_type: '',
+        scope: '',
+        session_state: '',
       },
     });
 
@@ -192,9 +200,15 @@ export class UserService {
       data: {
         provider: profile.provider,
         providerAccountId: profile.id,
-        providerRefreshToken: refreshTokenSSO,
-        providerAccessToken: accessTokenSSO,
+        refresh_token: refreshTokenSSO,
+        access_token: accessTokenSSO,
         userUid: createdUser.uid,
+        type: 'oauth',
+        id_token: '',
+        expires_at: 0,
+        token_type: '',
+        scope: '',
+        session_state: '',
       },
     });
 
@@ -220,17 +234,71 @@ export class UserService {
       data: {
         provider: profile.provider,
         providerAccountId: profile.id,
-        providerRefreshToken: refreshToken ? encrypt(refreshToken) : null,
-        providerAccessToken: accessToken ? encrypt(accessToken) : null,
+        refresh_token: refreshToken ? encrypt(refreshToken) : '',
+        access_token: accessToken ? encrypt(accessToken) : '',
         user: {
           connect: {
             uid: user.uid,
           },
         },
+        type: 'oauth',
+        id_token: '',
+        expires_at: 0,
+        token_type: '',
+        scope: '',
+        session_state: '',
       },
     });
 
     return createdProvider;
+  }
+
+  /**
+   * Creates a new user based on the Google profile
+   * @param profile Google profile data
+   * @param accessTokenSSO Access token from SSO provider
+   * @param refreshTokenSSO Refresh token from SSO provider
+   * @returns Created user
+   */
+  async createGoogleUser(profile, accessTokenSSO, refreshTokenSSO) {
+    let userPhotoURL = null;
+    let userDisplayName = null;
+
+    if (profile.photos && profile.photos.length > 0) {
+      userPhotoURL = profile.photos[0].value;
+    }
+
+    if (profile.displayName) {
+      userDisplayName = profile.displayName;
+    }
+
+    const createdUser = await this.prisma.user.create({
+      data: {
+        displayName: userDisplayName,
+        email: profile.emails[0].value,
+        photoURL: userPhotoURL,
+        lastLoggedOn: new Date(),
+      } as any,
+    });
+
+    // Create account separately
+    await this.prisma.account.create({
+      data: {
+        provider: profile.provider,
+        providerAccountId: profile.id,
+        refresh_token: refreshTokenSSO,
+        access_token: accessTokenSSO,
+        userUid: createdUser.uid,
+        type: 'oauth',
+        id_token: '',
+        expires_at: 0,
+        token_type: '',
+        scope: '',
+        session_state: '',
+      },
+    });
+
+    return createdUser;
   }
 
   /**

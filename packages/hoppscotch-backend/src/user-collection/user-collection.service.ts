@@ -19,10 +19,10 @@ import { AuthUser } from 'src/types/AuthUser';
 import * as E from 'fp-ts/Either';
 import * as O from 'fp-ts/Option';
 import { PubSubService } from 'src/pubsub/pubsub.service';
-import { Prisma, UserCollection, ReqType as DBReqType } from '@prisma/client';
+import { Prisma, UserCollection } from '@prisma/client';
 import {
   UserCollection as UserCollectionModel,
-  UserCollectionExportJSONData,
+  UserCollectionExportData,
   UserCollectionDuplicatedData,
 } from './user-collections.model';
 import { ReqType } from 'src/types/RequestTypes';
@@ -55,7 +55,7 @@ export class UserCollectionService {
       title: collection.title,
       type: collection.type,
       parentID: collection.parentID,
-      userID: collection.userUid,
+      orderIndex: collection.orderIndex,
       data,
     };
   }
@@ -174,7 +174,7 @@ export class UserCollectionService {
     collectionID: string,
     cursor: string | null,
     take: number,
-    type: ReqType,
+    type: string,
   ) {
     const res = await this.prisma.userCollection.findMany({
       where: {
@@ -231,7 +231,7 @@ export class UserCollectionService {
     title: string,
     data: string | null = null,
     parentUserCollectionID: string | null,
-    type: ReqType,
+    type: string,
   ) {
     const isTitleValid = isValidLength(title, this.TITLE_LENGTH);
     if (!isTitleValid) return E.left(USER_COLL_SHORT_TITLE);
@@ -304,7 +304,7 @@ export class UserCollectionService {
     user: AuthUser,
     cursor: string | null,
     take: number,
-    type: ReqType,
+    type: string,
   ) {
     const res = await this.prisma.userCollection.findMany({
       where: {
@@ -341,7 +341,7 @@ export class UserCollectionService {
     userCollectionID: string,
     cursor: string | null,
     take: number,
-    type: ReqType,
+    type: string,
   ) {
     const res = await this.prisma.userCollection.findMany({
       where: {
@@ -469,7 +469,7 @@ export class UserCollectionService {
       `user_coll/${deletedUserCollection.right.userUid}/deleted`,
       {
         id: deletedUserCollection.right.id,
-        type: ReqType[deletedUserCollection.right.type],
+        type: deletedUserCollection.right.type as string,
       },
     );
 
@@ -888,7 +888,7 @@ export class UserCollectionService {
         return {
           id: x.id,
           name: x.title,
-          ...(x.request as Record<string, unknown>), // type casting x.request of type Prisma.JSONValue to an object to enable spread
+          ...(JSON.parse(x.request as string)), // Parse the JSON string to an object
         };
       }),
       data,
@@ -906,7 +906,7 @@ export class UserCollectionService {
   async exportUserCollectionsToJSON(
     userUID: string,
     collectionID: string | null,
-    reqType: ReqType,
+    reqType: string,
   ) {
     // Get all child collections details
     const childCollectionList = await this.prisma.userCollection.findMany({
@@ -952,7 +952,7 @@ export class UserCollectionService {
         },
       });
 
-      return E.right(<UserCollectionExportJSONData>{
+      return E.right(<UserCollectionExportData>{
         exportedCollection: JSON.stringify({
           id: parentCollection.right.id,
           name: parentCollection.right.title,
@@ -961,7 +961,7 @@ export class UserCollectionService {
             return {
               id: x.id,
               name: x.title,
-              ...(x.request as Record<string, unknown>), // type casting x.request of type Prisma.JSONValue to an object to enable spread
+              ...(JSON.parse(x.request as string)), // Parse the JSON string to an object
             };
           }),
           data: JSON.stringify(parentCollection.right.data),
@@ -970,7 +970,7 @@ export class UserCollectionService {
       });
     }
 
-    return E.right(<UserCollectionExportJSONData>{
+    return E.right(<UserCollectionExportData>{
       exportedCollection: JSON.stringify(collectionListObjects),
       collectionType: reqType,
     });
@@ -989,7 +989,7 @@ export class UserCollectionService {
     folder: CollectionFolder,
     userID: string,
     orderIndex: number,
-    reqType: DBReqType,
+    reqType: string,
   ): Prisma.UserCollectionCreateInput {
     return {
       title: folder.name,
@@ -998,6 +998,7 @@ export class UserCollectionService {
           uid: userID,
         },
       },
+      type: reqType,
       requests: {
         create: folder.requests.map((r, index) => ({
           title: r.name,
@@ -1012,7 +1013,6 @@ export class UserCollectionService {
         })),
       },
       orderIndex: orderIndex,
-      type: reqType,
       children: {
         create: folder.folders.map((f, index) =>
           this.generatePrismaQueryObj(f, userID, index + 1, reqType),
@@ -1035,7 +1035,7 @@ export class UserCollectionService {
     jsonString: string,
     userID: string,
     destCollectionID: string | null,
-    reqType: DBReqType,
+    reqType: string,
     isCollectionDuplication = false,
   ) {
     // Check to see if jsonString is valid
@@ -1173,7 +1173,7 @@ export class UserCollectionService {
   async duplicateUserCollection(
     collectionID: string,
     userID: string,
-    reqType: DBReqType,
+    reqType: string,
   ) {
     const collection = await this.getUserCollection(collectionID);
     if (E.isLeft(collection)) return E.left(USER_COLL_NOT_FOUND);
@@ -1237,7 +1237,7 @@ export class UserCollectionService {
     );
 
     const failedChildData = childCollectionDataList.find(E.isLeft);
-    if (failedChildData) return E.left(failedChildData.left);
+    if (failedChildData) return E.left(failedChildData.left as string);
 
     const childCollectionsJSONStr = JSON.stringify(
       (childCollectionDataList as E.Right<UserCollectionDuplicatedData>[]).map(
@@ -1256,7 +1256,7 @@ export class UserCollectionService {
       data,
       type,
       parentID,
-      userID: userUid,
+      userUid,
       childCollections: childCollectionsJSONStr,
       requests: transformedRequests,
     });

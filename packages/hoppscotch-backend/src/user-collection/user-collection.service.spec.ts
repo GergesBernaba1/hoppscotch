@@ -16,7 +16,6 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PubSubService } from 'src/pubsub/pubsub.service';
 import { AuthUser } from 'src/types/AuthUser';
-import { ReqType } from 'src/types/RequestTypes';
 import { UserCollectionService } from './user-collection.service';
 import { UserCollection } from './user-collections.model';
 
@@ -41,8 +40,8 @@ const user: AuthUser = {
   lastLoggedOn: currentTime,
   lastActiveOn: currentTime,
   createdOn: currentTime,
-  currentGQLSession: {},
-  currentRESTSession: {},
+  currentGQLSession: '{}',
+  currentRESTSession: '{}',
 };
 
 const rootRESTUserCollection: DBUserCollection = {
@@ -51,18 +50,16 @@ const rootRESTUserCollection: DBUserCollection = {
   parentID: null,
   title: 'Root Collection 1',
   userUid: user.uid,
-  type: ReqType.REST,
+  type: "REST",
   createdOn: currentTime,
   updatedOn: currentTime,
-  data: {},
+  data: "{}",
 };
 
 const rootRESTUserCollectionCasted: UserCollection = {
   id: '123',
-  parentID: null,
-  userID: user.uid,
-  title: 'Root Collection 1',
-  type: ReqType.REST,
+  parentID: null,  title: 'Root Collection 1',
+  type: "REST",
   data: JSON.stringify(rootRESTUserCollection.data),
 };
 
@@ -70,41 +67,35 @@ const rootGQLUserCollection: DBUserCollection = {
   id: '123',
   orderIndex: 1,
   parentID: null,
-  title: 'Root Collection 1',
-  userUid: user.uid,
-  type: ReqType.GQL,
+  title: 'Root Collection 1',  type: "GQL",
   createdOn: currentTime,
   updatedOn: currentTime,
-  data: {},
+  data: "{}",
 };
 
 const rootGQLUserCollectionCasted: UserCollection = {
   id: '123',
   parentID: null,
   title: 'Root Collection 1',
-  userID: user.uid,
-  type: ReqType.GQL,
+  type: "GQL",
   data: JSON.stringify(rootGQLUserCollection.data),
+  orderIndex: 1,
 };
 
 const rootRESTUserCollection_2: DBUserCollection = {
   id: '4gf',
   orderIndex: 2,
   parentID: null,
-  title: 'Root Collection 2',
-  userUid: user.uid,
-  type: ReqType.REST,
+  title: 'Root Collection 2',  type: "REST",
   createdOn: currentTime,
   updatedOn: currentTime,
-  data: {},
+  data: "{}",
 };
 
 const rootRESTUserCollection_2Casted: UserCollection = {
   id: '4gf',
   parentID: null,
-  title: 'Root Collection 2',
-  userID: user.uid,
-  type: ReqType.REST,
+  title: 'Root Collection 2',  type: "REST",
   data: JSON.stringify(rootRESTUserCollection_2.data),
 };
 
@@ -112,20 +103,16 @@ const rootGQLUserCollection_2: DBUserCollection = {
   id: '4gf',
   orderIndex: 2,
   parentID: null,
-  title: 'Root Collection 2',
-  userUid: user.uid,
-  type: ReqType.GQL,
+  title: 'Root Collection 2',  type: "GQL",
   createdOn: currentTime,
   updatedOn: currentTime,
-  data: {},
+  data: "{}",
 };
 
 const rootGQLUserCollection_2Casted: UserCollection = {
   id: '4gf',
   parentID: null,
-  title: 'Root Collection 2',
-  userID: user.uid,
-  type: ReqType.GQL,
+  title: 'Root Collection 2',  type: "GQL",
   data: JSON.stringify(rootGQLUserCollection_2.data),
 };
 
@@ -133,20 +120,16 @@ const childRESTUserCollection: DBUserCollection = {
   id: '234',
   orderIndex: 1,
   parentID: rootRESTUserCollection.id,
-  title: 'Child Collection 1',
-  userUid: user.uid,
-  type: ReqType.REST,
+  title: 'Child Collection 1',  type: "REST",
   createdOn: currentTime,
   updatedOn: currentTime,
-  data: {},
+  data: "{}",
 };
 
 const childRESTUserCollectionCasted: UserCollection = {
   id: '234',
   parentID: rootRESTUserCollection.id,
-  title: 'Child Collection 1',
-  userID: user.uid,
-  type: ReqType.REST,
+  title: 'Child Collection 1',  type: "REST",
   data: JSON.stringify({}),
 };
 
@@ -154,20 +137,16 @@ const childGQLUserCollection: DBUserCollection = {
   id: '234',
   orderIndex: 1,
   parentID: rootRESTUserCollection.id,
-  title: 'Child Collection 1',
-  userUid: user.uid,
-  type: ReqType.GQL,
+  title: 'Child Collection 1',  type: "GQL",
   createdOn: currentTime,
   updatedOn: currentTime,
-  data: {},
+  data: "{}",
 };
 
 const childGQLUserCollectionCasted: UserCollection = {
   id: '234',
   parentID: rootRESTUserCollection.id,
-  title: 'Child Collection 1',
-  userID: user.uid,
-  type: ReqType.GQL,
+  title: 'Child Collection 1',  type: "GQL",
   data: JSON.stringify({}),
 };
 
@@ -175,20 +154,16 @@ const childRESTUserCollection_2: DBUserCollection = {
   id: '0kn',
   orderIndex: 2,
   parentID: rootRESTUserCollection_2.id,
-  title: 'Child Collection 2',
-  userUid: user.uid,
-  type: ReqType.REST,
+  title: 'Child Collection 2',  type: "REST",
   createdOn: currentTime,
   updatedOn: currentTime,
-  data: {},
+  data: "{}",
 };
 
 const childRESTUserCollection_2Casted: UserCollection = {
   id: '0kn',
   parentID: rootRESTUserCollection_2.id,
-  title: 'Child Collection 2',
-  userID: user.uid,
-  type: ReqType.REST,
+  title: 'Child Collection 2',  type: "REST",
   data: JSON.stringify({}),
 };
 
@@ -196,20 +171,16 @@ const childGQLUserCollection_2: DBUserCollection = {
   id: '0kn',
   orderIndex: 2,
   parentID: rootRESTUserCollection_2.id,
-  title: 'Child Collection 2',
-  userUid: user.uid,
-  type: ReqType.GQL,
+  title: 'Child Collection 2',  type: "GQL",
   createdOn: currentTime,
   updatedOn: currentTime,
-  data: {},
+  data: "{}",
 };
 
 const childGQLUserCollection_2Casted: UserCollection = {
   id: '0kn',
   parentID: rootRESTUserCollection_2.id,
-  title: 'Child Collection 2',
-  userID: user.uid,
-  type: ReqType.GQL,
+  title: 'Child Collection 2',  type: "GQL",
   data: JSON.stringify({}),
 };
 
@@ -220,10 +191,10 @@ const childRESTUserCollectionList: DBUserCollection[] = [
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 1',
     userUid: user.uid,
-    type: ReqType.REST,
+    type: "REST",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '345',
@@ -231,10 +202,10 @@ const childRESTUserCollectionList: DBUserCollection[] = [
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 2',
     userUid: user.uid,
-    type: ReqType.REST,
+    type: "REST",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '456',
@@ -242,10 +213,10 @@ const childRESTUserCollectionList: DBUserCollection[] = [
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 3',
     userUid: user.uid,
-    type: ReqType.REST,
+    type: "REST",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '567',
@@ -253,10 +224,10 @@ const childRESTUserCollectionList: DBUserCollection[] = [
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 4',
     userUid: user.uid,
-    type: ReqType.REST,
+    type: "REST",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '678',
@@ -264,10 +235,10 @@ const childRESTUserCollectionList: DBUserCollection[] = [
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 5',
     userUid: user.uid,
-    type: ReqType.REST,
+    type: "REST",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
 ];
 
@@ -276,40 +247,40 @@ const childRESTUserCollectionListCasted: UserCollection[] = [
     id: '234',
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 1',
-    userID: user.uid,
-    type: ReqType.REST,
+    userUid: user.uid,
+    type: "REST",
     data: JSON.stringify({}),
   },
   {
     id: '345',
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 2',
-    userID: user.uid,
-    type: ReqType.REST,
+    userUid: user.uid,
+    type: "REST",
     data: JSON.stringify({}),
   },
   {
     id: '456',
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 3',
-    userID: user.uid,
-    type: ReqType.REST,
+    userUid: user.uid,
+    type: "REST",
     data: JSON.stringify({}),
   },
   {
     id: '567',
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 4',
-    userID: user.uid,
-    type: ReqType.REST,
+    userUid: user.uid,
+    type: "REST",
     data: JSON.stringify({}),
   },
   {
     id: '678',
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 5',
-    userID: user.uid,
-    type: ReqType.REST,
+    userUid: user.uid,
+    type: "REST",
     data: JSON.stringify({}),
   },
 ];
@@ -321,10 +292,10 @@ const childGQLUserCollectionList: DBUserCollection[] = [
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 1',
     userUid: user.uid,
-    type: ReqType.GQL,
+    type: "GQL",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '345',
@@ -332,10 +303,10 @@ const childGQLUserCollectionList: DBUserCollection[] = [
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 2',
     userUid: user.uid,
-    type: ReqType.GQL,
+    type: "GQL",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '456',
@@ -343,10 +314,10 @@ const childGQLUserCollectionList: DBUserCollection[] = [
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 3',
     userUid: user.uid,
-    type: ReqType.GQL,
+    type: "GQL",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '567',
@@ -354,10 +325,10 @@ const childGQLUserCollectionList: DBUserCollection[] = [
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 4',
     userUid: user.uid,
-    type: ReqType.GQL,
+    type: "GQL",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '678',
@@ -365,10 +336,10 @@ const childGQLUserCollectionList: DBUserCollection[] = [
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 5',
     userUid: user.uid,
-    type: ReqType.GQL,
+    type: "GQL",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
 ];
 
@@ -377,40 +348,40 @@ const childGQLUserCollectionListCasted: UserCollection[] = [
     id: '234',
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 1',
-    userID: user.uid,
-    type: ReqType.GQL,
+    userUid: user.uid,
+    type: "GQL",
     data: JSON.stringify({}),
   },
   {
     id: '345',
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 2',
-    userID: user.uid,
-    type: ReqType.GQL,
+    userUid: user.uid,
+    type: "GQL",
     data: JSON.stringify({}),
   },
   {
     id: '456',
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 3',
-    userID: user.uid,
-    type: ReqType.GQL,
+    userUid: user.uid,
+    type: "GQL",
     data: JSON.stringify({}),
   },
   {
     id: '567',
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 4',
-    userID: user.uid,
-    type: ReqType.GQL,
+    userUid: user.uid,
+    type: "GQL",
     data: JSON.stringify({}),
   },
   {
     id: '678',
     parentID: rootRESTUserCollection.id,
     title: 'Child Collection 5',
-    userID: user.uid,
-    type: ReqType.GQL,
+    userUid: user.uid,
+    type: "GQL",
     data: JSON.stringify({}),
   },
 ];
@@ -422,10 +393,10 @@ const rootRESTUserCollectionList: DBUserCollection[] = [
     parentID: null,
     title: 'Root Collection 1',
     userUid: user.uid,
-    type: ReqType.REST,
+    type: "REST",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '234',
@@ -433,10 +404,10 @@ const rootRESTUserCollectionList: DBUserCollection[] = [
     parentID: null,
     title: 'Root Collection 2',
     userUid: user.uid,
-    type: ReqType.REST,
+    type: "REST",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '345',
@@ -444,10 +415,10 @@ const rootRESTUserCollectionList: DBUserCollection[] = [
     parentID: null,
     title: 'Root Collection 3',
     userUid: user.uid,
-    type: ReqType.REST,
+    type: "REST",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '456',
@@ -455,10 +426,10 @@ const rootRESTUserCollectionList: DBUserCollection[] = [
     parentID: null,
     title: 'Root Collection 4',
     userUid: user.uid,
-    type: ReqType.REST,
+    type: "REST",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '567',
@@ -466,10 +437,10 @@ const rootRESTUserCollectionList: DBUserCollection[] = [
     parentID: null,
     title: 'Root Collection 5',
     userUid: user.uid,
-    type: ReqType.REST,
+    type: "REST",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
 ];
 
@@ -478,40 +449,40 @@ const rootRESTUserCollectionListCasted: UserCollection[] = [
     id: '123',
     parentID: null,
     title: 'Root Collection 1',
-    userID: user.uid,
-    type: ReqType.REST,
+    userUid: user.uid,
+    type: "REST",
     data: JSON.stringify({}),
   },
   {
     id: '234',
     parentID: null,
     title: 'Root Collection 2',
-    userID: user.uid,
-    type: ReqType.REST,
+    userUid: user.uid,
+    type: "REST",
     data: JSON.stringify({}),
   },
   {
     id: '345',
     parentID: null,
     title: 'Root Collection 3',
-    userID: user.uid,
-    type: ReqType.REST,
+    userUid: user.uid,
+    type: "REST",
     data: JSON.stringify({}),
   },
   {
     id: '456',
     parentID: null,
     title: 'Root Collection 4',
-    userID: user.uid,
-    type: ReqType.REST,
+    userUid: user.uid,
+    type: "REST",
     data: JSON.stringify({}),
   },
   {
     id: '567',
     parentID: null,
     title: 'Root Collection 5',
-    userID: user.uid,
-    type: ReqType.REST,
+    userUid: user.uid,
+    type: "REST",
     data: JSON.stringify({}),
   },
 ];
@@ -523,10 +494,10 @@ const rootGQLUserCollectionList: DBUserCollection[] = [
     parentID: null,
     title: 'Root Collection 1',
     userUid: user.uid,
-    type: ReqType.GQL,
+    type: "GQL",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '234',
@@ -534,10 +505,10 @@ const rootGQLUserCollectionList: DBUserCollection[] = [
     parentID: null,
     title: 'Root Collection 2',
     userUid: user.uid,
-    type: ReqType.GQL,
+    type: "GQL",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '345',
@@ -545,10 +516,10 @@ const rootGQLUserCollectionList: DBUserCollection[] = [
     parentID: null,
     title: 'Root Collection 3',
     userUid: user.uid,
-    type: ReqType.GQL,
+    type: "GQL",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '456',
@@ -556,10 +527,10 @@ const rootGQLUserCollectionList: DBUserCollection[] = [
     parentID: null,
     title: 'Root Collection 4',
     userUid: user.uid,
-    type: ReqType.GQL,
+    type: "GQL",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
   {
     id: '567',
@@ -567,10 +538,10 @@ const rootGQLUserCollectionList: DBUserCollection[] = [
     parentID: null,
     title: 'Root Collection 5',
     userUid: user.uid,
-    type: ReqType.GQL,
+    type: "GQL",
     createdOn: currentTime,
     updatedOn: currentTime,
-    data: {},
+    data: "{}",
   },
 ];
 
@@ -579,40 +550,40 @@ const rootGQLUserCollectionListCasted: UserCollection[] = [
     id: '123',
     parentID: null,
     title: 'Root Collection 1',
-    userID: user.uid,
-    type: ReqType.GQL,
+    userUid: user.uid,
+    type: "GQL",
     data: JSON.stringify({}),
   },
   {
     id: '234',
     parentID: null,
     title: 'Root Collection 2',
-    userID: user.uid,
-    type: ReqType.GQL,
+    userUid: user.uid,
+    type: "GQL",
     data: JSON.stringify({}),
   },
   {
     id: '345',
     parentID: null,
     title: 'Root Collection 3',
-    userID: user.uid,
-    type: ReqType.GQL,
+    userUid: user.uid,
+    type: "GQL",
     data: JSON.stringify({}),
   },
   {
     id: '456',
     parentID: null,
     title: 'Root Collection 4',
-    userID: user.uid,
-    type: ReqType.GQL,
+    userUid: user.uid,
+    type: "GQL",
     data: JSON.stringify({}),
   },
   {
     id: '567',
     parentID: null,
     title: 'Root Collection 5',
-    userID: user.uid,
-    type: ReqType.GQL,
+    userUid: user.uid,
+    type: "GQL",
     data: JSON.stringify({}),
   },
 ];
@@ -657,7 +628,7 @@ describe('getChildrenOfUserCollection', () => {
       rootRESTUserCollection.id,
       null,
       10,
-      ReqType.REST,
+      "REST",
     );
     expect(result).toEqual(childRESTUserCollectionListCasted);
   });
@@ -670,7 +641,7 @@ describe('getChildrenOfUserCollection', () => {
       rootGQLUserCollection.id,
       null,
       10,
-      ReqType.REST,
+      "REST",
     );
     expect(result).toEqual(childGQLUserCollectionListCasted);
   });
@@ -681,7 +652,7 @@ describe('getChildrenOfUserCollection', () => {
       'invalidID',
       null,
       10,
-      ReqType.REST,
+      "REST",
     );
     expect(result).toEqual([]);
   });
@@ -692,7 +663,7 @@ describe('getChildrenOfUserCollection', () => {
       'invalidID',
       null,
       10,
-      ReqType.GQL,
+      "GQL",
     );
     expect(result).toEqual([]);
   });
@@ -729,7 +700,7 @@ describe('getUserRootCollections', () => {
       user,
       null,
       10,
-      ReqType.REST,
+      "REST",
     );
     expect(result).toEqual(rootRESTUserCollectionListCasted);
   });
@@ -742,7 +713,7 @@ describe('getUserRootCollections', () => {
       user,
       null,
       10,
-      ReqType.GQL,
+      "GQL",
     );
     expect(result).toEqual(rootGQLUserCollectionListCasted);
   });
@@ -753,7 +724,7 @@ describe('getUserRootCollections', () => {
       { ...user, uid: 'invalidID' },
       null,
       10,
-      ReqType.REST,
+      "REST",
     );
     expect(result).toEqual([]);
   });
@@ -764,7 +735,7 @@ describe('getUserRootCollections', () => {
       { ...user, uid: 'invalidID' },
       null,
       10,
-      ReqType.GQL,
+      "GQL",
     );
     expect(result).toEqual([]);
   });
@@ -777,7 +748,7 @@ describe('createUserCollection', () => {
       '',
       JSON.stringify(rootRESTUserCollection.data),
       rootRESTUserCollection.id,
-      ReqType.REST,
+      "REST",
     );
     expect(result).toEqualLeft(USER_COLL_SHORT_TITLE);
   });
@@ -794,7 +765,7 @@ describe('createUserCollection', () => {
       rootRESTUserCollection.title,
       JSON.stringify(rootRESTUserCollection.data),
       rootRESTUserCollection.id,
-      ReqType.REST,
+      "REST",
     );
     expect(result).toEqualLeft(USER_NOT_OWNER);
   });
@@ -816,7 +787,7 @@ describe('createUserCollection', () => {
       rootRESTUserCollection.title,
       JSON.stringify(rootRESTUserCollection.data),
       rootRESTUserCollection.id,
-      ReqType.REST,
+      "REST",
     );
     expect(result).toEqualRight(rootRESTUserCollectionCasted);
   });
@@ -838,7 +809,7 @@ describe('createUserCollection', () => {
       rootGQLUserCollection.title,
       JSON.stringify(rootGQLUserCollection.data),
       rootGQLUserCollection.id,
-      ReqType.GQL,
+      "GQL",
     );
     expect(result).toEqualRight(rootGQLUserCollectionCasted);
   });
@@ -860,7 +831,7 @@ describe('createUserCollection', () => {
       childRESTUserCollection.title,
       JSON.stringify(childRESTUserCollection.data),
       childRESTUserCollection.id,
-      ReqType.REST,
+      "REST",
     );
     expect(result).toEqualRight(childRESTUserCollectionCasted);
   });
@@ -882,7 +853,7 @@ describe('createUserCollection', () => {
       childGQLUserCollection.title,
       JSON.stringify(childGQLUserCollection.data),
       childGQLUserCollection.id,
-      ReqType.GQL,
+      "GQL",
     );
     expect(result).toEqualRight(childGQLUserCollectionCasted);
   });
@@ -904,7 +875,7 @@ describe('createUserCollection', () => {
       childRESTUserCollection.title,
       JSON.stringify(childRESTUserCollection.data),
       childRESTUserCollection.id,
-      ReqType.REST,
+      "REST",
     );
     expect(mockPubSub.publish).toHaveBeenCalledWith(
       `user_coll/${user.uid}/created`,
@@ -929,7 +900,7 @@ describe('createUserCollection', () => {
       childGQLUserCollection.title,
       JSON.stringify(childGQLUserCollection.data),
       childGQLUserCollection.id,
-      ReqType.GQL,
+      "GQL",
     );
     expect(mockPubSub.publish).toHaveBeenCalledWith(
       `user_coll/${user.uid}/created`,
@@ -954,7 +925,7 @@ describe('createUserCollection', () => {
       rootRESTUserCollection.title,
       JSON.stringify(rootRESTUserCollection.data),
       rootRESTUserCollection.id,
-      ReqType.REST,
+      "REST",
     );
     expect(mockPubSub.publish).toHaveBeenCalledWith(
       `user_coll/${user.uid}/created`,
@@ -979,7 +950,7 @@ describe('createUserCollection', () => {
       rootGQLUserCollection.title,
       JSON.stringify(rootGQLUserCollection.data),
       rootGQLUserCollection.id,
-      ReqType.GQL,
+      "GQL",
     );
     expect(mockPubSub.publish).toHaveBeenCalledWith(
       `user_coll/${user.uid}/created`,
@@ -1634,7 +1605,7 @@ describe('updateUserCollectionOrder', () => {
       {
         userCollection: {
           ...childRESTUserCollectionListCasted[4],
-          userID: childRESTUserCollectionListCasted[4].userID,
+          userUid: childRESTUserCollectionListCasted[4].userUid,
         },
         nextUserCollection: null,
       },
@@ -1664,7 +1635,7 @@ describe('updateUserCollectionOrder', () => {
       .mockResolvedValueOnce(childRESTUserCollectionList[4])
       .mockResolvedValueOnce({
         ...childRESTUserCollection_2,
-        type: ReqType.GQL,
+        type: "GQL",
       });
 
     const result = await userCollectionService.updateUserCollectionOrder(
@@ -1721,11 +1692,11 @@ describe('updateUserCollectionOrder', () => {
       {
         userCollection: {
           ...childRESTUserCollectionListCasted[4],
-          userID: childRESTUserCollectionListCasted[4].userID,
+          userUid: childRESTUserCollectionListCasted[4].userUid,
         },
         nextUserCollection: {
           ...childRESTUserCollectionListCasted[2],
-          userID: childRESTUserCollectionListCasted[2].userID,
+          userUid: childRESTUserCollectionListCasted[2].userUid,
         },
       },
     );
@@ -1826,7 +1797,7 @@ describe('updateUserCollection', () => {
     );
 
     expect(mockPubSub.publish).toHaveBeenCalledWith(
-      `user_coll/${rootRESTUserCollectionCasted.userID}/updated`,
+      `user_coll/${rootRESTUserCollectionCasted.userUid}/updated`,
       {
         data: JSON.stringify({ foo: 'bar' }),
         title: 'new_title',
@@ -1835,3 +1806,4 @@ describe('updateUserCollection', () => {
     );
   });
 });
+

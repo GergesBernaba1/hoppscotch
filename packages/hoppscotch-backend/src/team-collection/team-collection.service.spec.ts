@@ -46,8 +46,8 @@ const user: AuthUser = {
   lastLoggedOn: currentTime,
   lastActiveOn: currentTime,
   createdOn: currentTime,
-  currentGQLSession: {},
-  currentRESTSession: {},
+  currentGQLSession: '',
+  currentRESTSession: '',
 };
 
 const team: Team = {
@@ -59,7 +59,7 @@ const rootTeamCollection: DBTeamCollection = {
   id: '123',
   orderIndex: 1,
   parentID: null,
-  data: {},
+  data: "{}",
   title: 'Root Collection 1',
   teamID: team.id,
   createdOn: currentTime,
@@ -77,7 +77,7 @@ const rootTeamCollection_2: DBTeamCollection = {
   id: 'erv',
   orderIndex: 2,
   parentID: null,
-  data: {},
+  data: "{}",
   title: 'Root Collection 1',
   teamID: team.id,
   createdOn: currentTime,
@@ -95,7 +95,7 @@ const childTeamCollection: DBTeamCollection = {
   id: 'rfe',
   orderIndex: 1,
   parentID: rootTeamCollection.id,
-  data: {},
+  data: "{}",
   title: 'Child Collection 1',
   teamID: team.id,
   createdOn: currentTime,
@@ -112,7 +112,7 @@ const childTeamCollectionCasted: TeamCollection = {
 const childTeamCollection_2: DBTeamCollection = {
   id: 'bgdz',
   orderIndex: 1,
-  data: {},
+  data: "{}",
   parentID: rootTeamCollection_2.id,
   title: 'Child Collection 1',
   teamID: team.id,
@@ -132,7 +132,7 @@ const rootTeamCollectionList: DBTeamCollection[] = [
     id: 'fdv',
     orderIndex: 1,
     parentID: null,
-    data: {},
+    data: "{}",
 
     title: 'Root Collection 1',
     teamID: team.id,
@@ -144,7 +144,7 @@ const rootTeamCollectionList: DBTeamCollection[] = [
     orderIndex: 2,
     parentID: null,
     title: 'Root Collection 1',
-    data: {},
+    data: "{}",
 
     teamID: team.id,
     createdOn: currentTime,
@@ -155,7 +155,7 @@ const rootTeamCollectionList: DBTeamCollection[] = [
     orderIndex: 3,
     parentID: null,
     title: 'Root Collection 1',
-    data: {},
+    data: "{}",
 
     teamID: team.id,
     createdOn: currentTime,
@@ -165,7 +165,7 @@ const rootTeamCollectionList: DBTeamCollection[] = [
     id: 'bre3',
     orderIndex: 4,
     parentID: null,
-    data: {},
+    data: "{}",
 
     title: 'Root Collection 1',
     teamID: team.id,
@@ -177,7 +177,7 @@ const rootTeamCollectionList: DBTeamCollection[] = [
     orderIndex: 5,
     parentID: null,
     title: 'Root Collection 1',
-    data: {},
+    data: "{}",
 
     teamID: team.id,
     createdOn: currentTime,
@@ -189,7 +189,7 @@ const rootTeamCollectionList: DBTeamCollection[] = [
     parentID: null,
     title: 'Root Collection 1',
     teamID: team.id,
-    data: {},
+    data: "{}",
 
     createdOn: currentTime,
     updatedOn: currentTime,
@@ -200,7 +200,7 @@ const rootTeamCollectionList: DBTeamCollection[] = [
     parentID: null,
     title: 'Root Collection 1',
     teamID: team.id,
-    data: {},
+    data: "{}",
 
     createdOn: currentTime,
     updatedOn: currentTime,
@@ -210,7 +210,7 @@ const rootTeamCollectionList: DBTeamCollection[] = [
     orderIndex: 8,
     parentID: null,
     title: 'Root Collection 1',
-    data: {},
+    data: "{}",
     teamID: team.id,
     createdOn: currentTime,
     updatedOn: currentTime,
@@ -220,7 +220,7 @@ const rootTeamCollectionList: DBTeamCollection[] = [
     orderIndex: 9,
     parentID: null,
     title: 'Root Collection 1',
-    data: {},
+    data: "{}",
     teamID: team.id,
     createdOn: currentTime,
     updatedOn: currentTime,
@@ -231,7 +231,7 @@ const rootTeamCollectionList: DBTeamCollection[] = [
     parentID: null,
     title: 'Root Collection 1',
     teamID: team.id,
-    data: {},
+    data: "{}",
     createdOn: currentTime,
     updatedOn: currentTime,
   },
@@ -306,7 +306,7 @@ const childTeamCollectionList: DBTeamCollection[] = [
     orderIndex: 1,
     parentID: rootTeamCollection.id,
     title: 'Root Collection 1',
-    data: {},
+    data: "{}",
 
     teamID: team.id,
     createdOn: currentTime,
@@ -317,7 +317,7 @@ const childTeamCollectionList: DBTeamCollection[] = [
     orderIndex: 2,
     parentID: rootTeamCollection.id,
     title: 'Root Collection 1',
-    data: {},
+    data: "{}",
 
     teamID: team.id,
     createdOn: currentTime,
@@ -328,7 +328,7 @@ const childTeamCollectionList: DBTeamCollection[] = [
     orderIndex: 3,
     parentID: rootTeamCollection.id,
     title: 'Root Collection 1',
-    data: {},
+    data: "{}",
 
     teamID: team.id,
     createdOn: currentTime,
@@ -338,7 +338,7 @@ const childTeamCollectionList: DBTeamCollection[] = [
     id: '567',
     orderIndex: 4,
     parentID: rootTeamCollection.id,
-    data: {},
+    data: "{}",
 
     title: 'Root Collection 1',
     teamID: team.id,
@@ -349,7 +349,7 @@ const childTeamCollectionList: DBTeamCollection[] = [
     id: '123',
     orderIndex: 5,
     parentID: rootTeamCollection.id,
-    data: {},
+    data: "{}",
 
     title: 'Root Collection 1',
     teamID: team.id,
@@ -360,7 +360,7 @@ const childTeamCollectionList: DBTeamCollection[] = [
     id: '678',
     orderIndex: 6,
     parentID: rootTeamCollection.id,
-    data: {},
+    data: "{}",
 
     title: 'Root Collection 1',
     teamID: team.id,
@@ -371,7 +371,7 @@ const childTeamCollectionList: DBTeamCollection[] = [
     id: '789',
     orderIndex: 7,
     parentID: rootTeamCollection.id,
-    data: {},
+    data: "{}",
 
     title: 'Root Collection 1',
     teamID: team.id,
@@ -382,7 +382,7 @@ const childTeamCollectionList: DBTeamCollection[] = [
     id: '890',
     orderIndex: 8,
     parentID: rootTeamCollection.id,
-    data: {},
+    data: "{}",
 
     title: 'Root Collection 1',
     teamID: team.id,
@@ -393,7 +393,7 @@ const childTeamCollectionList: DBTeamCollection[] = [
     id: '012',
     orderIndex: 9,
     parentID: rootTeamCollection.id,
-    data: {},
+    data: "{}",
     title: 'Root Collection 1',
     teamID: team.id,
     createdOn: currentTime,
@@ -403,7 +403,7 @@ const childTeamCollectionList: DBTeamCollection[] = [
     id: '0bhu',
     orderIndex: 10,
     parentID: rootTeamCollection.id,
-    data: {},
+    data: "{}",
 
     title: 'Root Collection 1',
     teamID: team.id,

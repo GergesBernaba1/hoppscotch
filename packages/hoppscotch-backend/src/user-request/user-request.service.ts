@@ -32,7 +32,7 @@ export class UserRequestService {
   private cast(dbRequest: DbUserRequest): UserRequest {
     return {
       ...dbRequest,
-      type: ReqType[dbRequest.type],
+      type: dbRequest.type,
       request: JSON.stringify(dbRequest.request),
     };
   }
@@ -47,7 +47,7 @@ export class UserRequestService {
    */
   async fetchUserRequests(
     collectionID: string,
-    type: ReqType,
+    type: string,
     cursor: string,
     take: number,
     user: AuthUser,
@@ -114,7 +114,7 @@ export class UserRequestService {
     collectionID: string,
     title: string,
     request: string,
-    type: ReqType,
+    type: string,
     user: AuthUser,
   ): Promise<E.Left<string> | E.Right<UserRequest>> {
     const jsonRequest = stringToJson(request);
@@ -128,7 +128,7 @@ export class UserRequestService {
     if (collection.right.userUid !== user.uid)
       return E.left(USER_COLLECTION_NOT_FOUND);
 
-    if (collection.right.type !== ReqType[type])
+    if (collection.right.type !== type)
       return E.left(USER_REQUEST_INVALID_TYPE);
 
     try {
@@ -141,7 +141,7 @@ export class UserRequestService {
           collectionID,
           title,
           request: jsonRequest.right,
-          type: ReqType[type],
+          type,
           orderIndex: requestCount + 1,
           userUid: user.uid,
         },
@@ -171,7 +171,7 @@ export class UserRequestService {
   async updateRequest(
     id: string,
     title: string,
-    type: ReqType,
+    type: string,
     request: string,
     user: AuthUser,
   ): Promise<E.Left<string> | E.Right<UserRequest>> {
@@ -180,7 +180,7 @@ export class UserRequestService {
     });
     if (!existRequest) return E.left(USER_REQUEST_NOT_FOUND);
 
-    if (existRequest.type !== ReqType[type])
+    if (existRequest.type !== type)
       return E.left(USER_REQUEST_INVALID_TYPE);
 
     let jsonRequest = undefined;

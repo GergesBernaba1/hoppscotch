@@ -240,7 +240,7 @@ export class UserEnvironmentsService {
         const updatedEnvironment = await this.prisma.userEnvironment.update({
           where: { id: id },
           data: {
-            variables: [],
+            variables: '[]',
           },
         });
         const updatedUserEnvironment: UserEnvironment = {

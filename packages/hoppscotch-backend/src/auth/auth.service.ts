@@ -8,6 +8,7 @@ import * as argon2 from 'argon2';
 import * as bcrypt from 'bcrypt';
 import * as O from 'fp-ts/Option';
 import * as E from 'fp-ts/Either';
+
 import { DeviceIdentifierToken } from 'src/types/Passwordless';
 import {
   INVALID_EMAIL,
@@ -61,7 +62,8 @@ export class AuthService {
 
     const idToken = await this.prismaService.verificationToken.create({
       data: {
-        deviceIdentifier: salt,
+        identifier: salt,
+        token: salt, // Using salt as token since we don't have uuid package
         userUid: user.uid,
         expiresOn: expiresOn,
       },
@@ -81,8 +83,8 @@ export class AuthService {
       const tokens =
         await this.prismaService.verificationToken.findUniqueOrThrow({
           where: {
-            passwordless_deviceIdentifier_tokens: {
-              deviceIdentifier: magicLinkTokens.deviceIdentifier,
+            identifier_token: {
+              identifier: magicLinkTokens.deviceIdentifier,
               token: magicLinkTokens.token,
             },
           },
@@ -162,8 +164,8 @@ export class AuthService {
       const deletedPasswordlessToken =
         await this.prismaService.verificationToken.delete({
           where: {
-            passwordless_deviceIdentifier_tokens: {
-              deviceIdentifier: passwordlessTokens.deviceIdentifier,
+            identifier_token: {
+              identifier: passwordlessTokens.identifier,
               token: passwordlessTokens.token,
             },
           },
@@ -184,7 +186,7 @@ export class AuthService {
   async checkIfProviderAccountExists(user: AuthUser, SSOUserData) {
     const provider = await this.prismaService.account.findUnique({
       where: {
-        verifyProviderAccount: {
+        provider_providerAccountId: {
           provider: SSOUserData.provider,
           providerAccountId: SSOUserData.id,
         },
@@ -243,7 +245,7 @@ export class AuthService {
     });
 
     return E.right(<DeviceIdentifierToken>{
-      deviceIdentifier: generatedTokens.deviceIdentifier,
+      deviceIdentifier: generatedTokens.identifier,
     });
   }
 

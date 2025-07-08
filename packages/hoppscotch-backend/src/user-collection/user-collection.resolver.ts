@@ -17,7 +17,7 @@ import { UserCollectionService } from './user-collection.service';
 import {
   UserCollection,
   UserCollectionDuplicatedData,
-  UserCollectionExportJSONData,
+  UserCollectionExportData,
   UserCollectionRemovedData,
   UserCollectionReorderData,
 } from './user-collections.model';
@@ -153,7 +153,7 @@ export class UserCollectionResolver {
     };
   }
 
-  @Query(() => UserCollectionExportJSONData, {
+  @Query(() => UserCollectionExportData, {
     description:
       'Returns the JSON string giving the collections and their contents of a user',
   })
@@ -389,7 +389,7 @@ export class UserCollectionResolver {
         args.jsonString,
         user.uid,
         args.parentCollectionID,
-        args.reqType,
+        args.reqType.toString(),
       );
     if (E.isLeft(importedCollection)) throwErr(importedCollection.left);
     return importedCollection.right;
@@ -437,7 +437,7 @@ export class UserCollectionResolver {
       await this.userCollectionService.duplicateUserCollection(
         collectionID,
         user.uid,
-        reqType,
+        reqType.toString(),
       );
 
     if (E.isLeft(duplicatedUserCollection))

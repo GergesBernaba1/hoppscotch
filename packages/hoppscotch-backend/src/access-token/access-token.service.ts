@@ -10,7 +10,7 @@ import {
   ACCESS_TOKEN_NOT_FOUND,
 } from 'src/errors';
 import { CreateAccessTokenResponse } from './helper';
-import { PersonalAccessToken } from '@prisma/client';
+// import { PersonalAccessToken } from '@prisma/client';
 import { AccessToken } from 'src/types/AccessToken';
 @Injectable()
 export class AccessTokenService {
@@ -37,7 +37,7 @@ export class AccessTokenService {
    * @param token database PersonalAccessToken
    * @returns AccessToken model
    */
-  private cast(token: PersonalAccessToken): AccessToken {
+  private cast(token: any): AccessToken {
     return <AccessToken>{
       id: token.id,
       label: token.label,

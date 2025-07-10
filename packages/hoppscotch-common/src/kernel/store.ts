@@ -12,7 +12,9 @@ function impl() {
 }
 
 export const store = {
-  get capabilities() { return impl().capabilities },
+  get capabilities() {
+    return impl().capabilities
+  },
   init: (...args: any[]) => impl().init(...args),
   set: (...args: any[]) => impl().set(...args),
   get: (...args: any[]) => impl().get(...args),

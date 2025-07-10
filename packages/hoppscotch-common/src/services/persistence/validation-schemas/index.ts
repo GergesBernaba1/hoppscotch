@@ -618,10 +618,14 @@ const HoppSOAPResponseSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("fail"),
       statusCode: z.optional(z.number()),
-      headers: z.optional(z.array(z.object({
-        key: z.string(),
-        value: z.string(),
-      }))),
+      headers: z.optional(
+        z.array(
+          z.object({
+            key: z.string(),
+            value: z.string(),
+          })
+        )
+      ),
       body: z.optional(z.union([z.string(), z.instanceof(ArrayBuffer)])),
       req: HoppSOAPRequestSchema,
     })
@@ -643,10 +647,14 @@ const HoppSOAPResponseSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("success"),
       statusCode: z.optional(z.number()),
-      headers: z.optional(z.array(z.object({
-        key: z.string(),
-        value: z.string(),
-      }))),
+      headers: z.optional(
+        z.array(
+          z.object({
+            key: z.string(),
+            value: z.string(),
+          })
+        )
+      ),
       body: z.optional(z.union([z.string(), z.instanceof(ArrayBuffer)])),
       req: HoppSOAPRequestSchema,
     })

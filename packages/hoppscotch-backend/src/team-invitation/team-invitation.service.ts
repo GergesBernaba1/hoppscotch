@@ -79,7 +79,7 @@ export class TeamInvitationService {
         where: {
           inviteeEmail: {
             equals: inviteeEmail,
-            mode: 'insensitive',
+            //   mode: 'insensitive',
           },
           teamID,
         },

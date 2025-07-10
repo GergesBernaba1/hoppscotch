@@ -1,48 +1,46 @@
 <template>
   <div class="smart-code-editor-placeholder">
-    <textarea 
-      v-model="code" 
-      @input="updateValue(code)" 
-      rows="10" 
-      cols="50" 
-    />
+    <textarea v-model="code" rows="10" cols="50" @input="updateValue(code)" />
   </div>
 </template>
 
 <script>
-import { ref, watch } from 'vue'
+import { ref, watch } from "vue"
 
 export default {
-  name: 'SmartCodeEditor',
+  name: "SmartCodeEditor",
   props: {
     modelValue: {
       type: String,
-      default: ''
+      default: "",
     },
     language: {
       type: String,
-      default: 'xml'
-    }
+      default: "xml",
+    },
   },
-  emits: ['update:modelValue'],
+  emits: ["update:modelValue"],
   setup(props, { emit }) {
     const code = ref(props.modelValue)
-    
+
     // Watch for changes from parent
-    watch(() => props.modelValue, (newVal) => {
-      code.value = newVal
-    })
-    
+    watch(
+      () => props.modelValue,
+      (newVal) => {
+        code.value = newVal
+      }
+    )
+
     // Watch for internal changes
     const updateValue = (newValue) => {
-      emit('update:modelValue', newValue)
+      emit("update:modelValue", newValue)
     }
-    
+
     return {
       code,
-      updateValue
+      updateValue,
     }
-  }
+  },
 }
 </script>
 
@@ -58,4 +56,4 @@ textarea {
   font-family: monospace;
   font-size: 1em;
 }
-</style> 
+</style>

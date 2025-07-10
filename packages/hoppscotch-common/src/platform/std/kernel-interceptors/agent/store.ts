@@ -69,10 +69,7 @@ export class KernelInterceptorAgentStore extends Service {
   }
 
   private async loadStore(): Promise<void> {
-    const loadResult = await store.get(
-      STORE_NAMESPACE,
-      STORE_KEYS.SETTINGS
-    )
+    const loadResult = await store.get(STORE_NAMESPACE, STORE_KEYS.SETTINGS)
 
     if (E.isRight(loadResult) && loadResult.right) {
       const storedData = loadResult.right as StoredData
@@ -91,17 +88,16 @@ export class KernelInterceptorAgentStore extends Service {
   }
 
   private setupWatchers() {
-    store.watch(STORE_NAMESPACE, STORE_KEYS.SETTINGS).on(
-      "change",
-      async ({ value }: { value: unknown }) => {
+    store
+      .watch(STORE_NAMESPACE, STORE_KEYS.SETTINGS)
+      .on("change", async ({ value }: { value: unknown }) => {
         if (value) {
           const storedData = value as StoredData
           this.domainSettings = new Map(Object.entries(storedData.domains))
           this.authKey.value = storedData.auth.key
           this.sharedSecretB16.value = storedData.auth.sharedSecret
         }
-      }
-    )
+      })
   }
 
   private async persistStore(): Promise<void> {

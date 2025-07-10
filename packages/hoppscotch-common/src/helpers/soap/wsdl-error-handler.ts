@@ -27,52 +27,61 @@ export class WSDLErrorHandler {
             // Try to fetch with a timeout
             const controller = new AbortController()
             const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
-            
-            const res = await fetch(wsdlUrl, { 
+
+            const res = await fetch(wsdlUrl, {
               signal: controller.signal,
               headers: {
-                'Accept': 'text/xml, application/xml, application/soap+xml, text/plain'
+                Accept:
+                  "text/xml, application/xml, application/soap+xml, text/plain",
               },
-              cache: 'no-store' // Always fetch fresh WSDL
+              cache: "no-store", // Always fetch fresh WSDL
             })
-            
+
             clearTimeout(timeoutId)
-            
+
             // Check for HTTP errors
             if (!res.ok) {
-              throw new Error(`Failed to fetch WSDL (HTTP ${res.status}): ${res.statusText}`)
+              throw new Error(
+                `Failed to fetch WSDL (HTTP ${res.status}): ${res.statusText}`
+              )
             }
-            
+
             const text = await res.text()
-            
+
             // Simple validation that it looks like WSDL
-            if (!text.includes('<wsdl:definitions') && 
-                !text.includes('<definitions') && 
-                !text.includes('xmlns:wsdl=')) {
-              throw new Error('The document does not appear to be a valid WSDL file')
+            if (
+              !text.includes("<wsdl:definitions") &&
+              !text.includes("<definitions") &&
+              !text.includes("xmlns:wsdl=")
+            ) {
+              throw new Error(
+                "The document does not appear to be a valid WSDL file"
+              )
             }
-            
+
             return text
           },
           (err) => new Error(`Failed to fetch WSDL: ${String(err)}`)
         )()
-        
+
         if (E.isRight(result)) {
           return result
         }
-        
+
         lastError = result.left
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err))
       }
-      
+
       // Increase delay with each retry (exponential backoff)
-      await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempts)))
+      await new Promise((resolve) =>
+        setTimeout(resolve, delay * Math.pow(2, attempts))
+      )
       attempts++
     }
 
     return E.left(
-      lastError || new Error('Failed to fetch WSDL after multiple attempts')
+      lastError || new Error("Failed to fetch WSDL after multiple attempts")
     )
   }
 
@@ -88,21 +97,23 @@ export class WSDLErrorHandler {
         attributeNamePrefix: "@_",
         isArray: (name) => ["operation", "service", "port"].includes(name),
       })
-      
+
       // Try parsing the XML to check for syntax errors
       const result = parser.parse(wsdlContent)
-      
+
       // Check for required WSDL elements
       if (!result.definitions) {
-        return E.left(new Error('Invalid WSDL: Missing definitions element'))
+        return E.left(new Error("Invalid WSDL: Missing definitions element"))
       }
-      
+
       // Check for port types (operations)
       const portTypes = result.definitions.portType
       if (!portTypes) {
-        return E.left(new Error('Invalid WSDL: No port types/operations defined'))
+        return E.left(
+          new Error("Invalid WSDL: No port types/operations defined")
+        )
       }
-      
+
       return E.right(true)
     } catch (error) {
       return E.left(new Error(`WSDL XML Parsing Error: ${String(error)}`))
@@ -131,9 +142,11 @@ export class WSDLErrorHandler {
       params: [],
       operation: "",
       body: `<?xml version="1.0" encoding="UTF-8"?>
-<soap:Envelope xmlns:soap="${soapVersion === "1.2" ? 
-  "http://www.w3.org/2003/05/soap-envelope" : 
-  "http://schemas.xmlsoap.org/soap/envelope/"}">
+<soap:Envelope xmlns:soap="${
+        soapVersion === "1.2"
+          ? "http://www.w3.org/2003/05/soap-envelope"
+          : "http://schemas.xmlsoap.org/soap/envelope/"
+      }">
   <soap:Header></soap:Header>
   <soap:Body>
     <TestConnection xmlns="http://hoppscotch.io/soap/test" />
@@ -142,10 +155,10 @@ export class WSDLErrorHandler {
       preRequestScript: "",
       testScript: "",
     }
-    
+
     // Send the request
     const [responseStream, _] = createSOAPNetworkRequestStream(request)
-    
+
     return new Promise((resolve) => {
       const subscription = responseStream.subscribe({
         next: (value) => {
@@ -153,7 +166,7 @@ export class WSDLErrorHandler {
             subscription.unsubscribe()
             resolve(value)
           }
-        }
+        },
       })
     })
   }

@@ -38,11 +38,12 @@ export const useSOAPCollectionStore = defineStore("soapCollection", () => {
   const collections = ref<SOAPCollection[]>([])
   const collectionsRefStore = new RefStore<SOAPCollection[]>([])
   const persistenceService = getService(PersistenceService)
-  
+
   // Load collections from persistence
   async function loadCollections() {
-    const loadedCollections = await persistenceService.getLocalConfig<SOAPCollection[]>(STORE_KEY)
-    
+    const loadedCollections =
+      await persistenceService.getLocalConfig<SOAPCollection[]>(STORE_KEY)
+
     if (loadedCollections) {
       collections.value = loadedCollections
       collectionsRefStore.setValue(loadedCollections)
@@ -53,42 +54,42 @@ export const useSOAPCollectionStore = defineStore("soapCollection", () => {
       await persistenceService.setLocalConfig(STORE_KEY, [])
     }
   }
-  
+
   // Save collections to persistence
   async function saveCollections() {
     await persistenceService.setLocalConfig(STORE_KEY, collections.value)
   }
-  
+
   // Create a new collection
   function createCollection(name: string) {
     const newCollection: SOAPCollection = {
       id: uniqueID(),
       name,
       folders: [],
-      requests: []
+      requests: [],
     }
-    
+
     collections.value.push(newCollection)
     collectionsRefStore.setValue(collections.value)
-    
+
     saveCollections()
     return newCollection
   }
-  
+
   // Delete a collection
   function deleteCollection(collectionID: string) {
     const collectionIndex = collections.value.findIndex(
       (col) => col.id === collectionID
     )
-    
+
     if (collectionIndex === -1) return
-    
+
     collections.value.splice(collectionIndex, 1)
     collectionsRefStore.setValue(collections.value)
-    
+
     saveCollections()
   }
-  
+
   // Add a request to a collection
   function addRequest(
     collectionID: string,
@@ -97,20 +98,20 @@ export const useSOAPCollectionStore = defineStore("soapCollection", () => {
   ) {
     const collection = collections.value.find((col) => col.id === collectionID)
     if (!collection) return null
-    
+
     const newRequest: SOAPCollectionRequest = {
       id: uniqueID(),
       name,
-      request
+      request,
     }
-    
+
     collection.requests.push(newRequest)
     collectionsRefStore.setValue(collections.value)
-    
+
     saveCollections()
     return newRequest
   }
-  
+
   // Create a folder in a collection
   function createFolder(
     collectionID: string,
@@ -119,64 +120,64 @@ export const useSOAPCollectionStore = defineStore("soapCollection", () => {
   ) {
     const collection = collections.value.find((col) => col.id === collectionID)
     if (!collection) return null
-    
+
     // If path is empty, create folder at root level
     if (path.length === 0) {
       const newFolder: SOAPFolder = {
         id: uniqueID(),
         name,
         folders: [],
-        requests: []
+        requests: [],
       }
-      
+
       collection.folders.push(newFolder)
       collectionsRefStore.setValue(collections.value)
-      
+
       saveCollections()
       return newFolder
     }
-    
+
     // Otherwise navigate the path
     let currentFolders = collection.folders
     let targetFolder = null
-    
+
     for (let i = 0; i < path.length; i++) {
       const folderID = path[i]
       targetFolder = currentFolders.find((folder) => folder.id === folderID)
-      
+
       if (!targetFolder) return null
-      
+
       currentFolders = targetFolder.folders
     }
-    
+
     if (!targetFolder) return null
-    
+
     const newFolder: SOAPFolder = {
       id: uniqueID(),
       name,
       folders: [],
-      requests: []
+      requests: [],
     }
-    
+
     targetFolder.folders.push(newFolder)
     collectionsRefStore.setValue(collections.value)
-    
+
     saveCollections()
     return newFolder
   }
-  
+
   // Computed value for collection references
   const collectionsRef = computed(() => collectionsRefStore.getValue())
-  
+
   // Initialize the store by loading data
   loadCollections()
-    // Import a collection
+  // Import a collection
   function importCollection(collectionData: SOAPCollection) {
     // Check if collection with same ID exists
     const existingIndex = collections.value.findIndex(
       (col) => col.id === collectionData.id
     )
-    
+
     if (existingIndex !== -1) {
       // Replace existing collection
       collections.value.splice(existingIndex, 1, collectionData)
@@ -184,13 +185,13 @@ export const useSOAPCollectionStore = defineStore("soapCollection", () => {
       // Add as new collection
       collections.value.push(collectionData)
     }
-    
+
     collectionsRefStore.setValue(collections.value)
     saveCollections()
-    
+
     return collectionData
   }
-  
+
   return {
     collections,
     collectionsRef,
@@ -199,6 +200,6 @@ export const useSOAPCollectionStore = defineStore("soapCollection", () => {
     addRequest,
     createFolder,
     saveCollections,
-    importCollection
+    importCollection,
   }
 })

@@ -100,7 +100,7 @@ export class AdminService {
       where: {
         inviteeEmail: {
           equals: inviteeEmail,
-          mode: 'insensitive',
+          //   mode: 'insensitive',
         },
       },
     });
@@ -173,7 +173,7 @@ export class AdminService {
     try {
       await this.prisma.invitedUsers.deleteMany({
         where: {
-          inviteeEmail: { in: inviteeEmails, mode: 'insensitive' },
+          inviteeEmail: { in: inviteeEmails },
         },
       });
       return E.right(true);
@@ -203,7 +203,7 @@ export class AdminService {
         NOT: {
           inviteeEmail: {
             in: userEmailObjs.map((user) => user.email),
-            mode: 'insensitive',
+            //   mode: 'insensitive',
           },
         },
       },
@@ -464,7 +464,7 @@ export class AdminService {
     });
 
     const nonAdminUsers = allUsersList.filter((user) => !user.isAdmin);
-    let deletedUserEmails: string[] = [];
+    const deletedUserEmails: string[] = [];
 
     // step 3: delete non-admin users
     const deletionPromises = nonAdminUsers.map((user) => {

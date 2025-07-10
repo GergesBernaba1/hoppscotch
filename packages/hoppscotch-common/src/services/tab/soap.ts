@@ -1,7 +1,11 @@
 import { Container } from "dioc"
 import { isEqual } from "lodash-es"
 import { computed } from "vue"
-import { HoppSOAPSaveContext, HoppSOAPTabDocument, SOAPOptionTabs } from "~/helpers/soap/document"
+import {
+  HoppSOAPSaveContext,
+  HoppSOAPTabDocument,
+  SOAPOptionTabs,
+} from "~/helpers/soap/document"
 import { getService } from "~/modules/dioc"
 import { PersistenceService } from "../persistence/service"
 import { STORE_KEYS } from "../persistence/constants"
@@ -27,7 +31,7 @@ export class SOAPTabService extends TabService<HoppSOAPTabDocument> {
         const tab = this.tabMap.get(tabID)
         // Skip undefined tabs
         if (!tab) return null
-        
+
         return {
           tabID: tab.id,
           doc: {
@@ -36,11 +40,11 @@ export class SOAPTabService extends TabService<HoppSOAPTabDocument> {
           },
         }
       })
-      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .filter((item): item is NonNullable<typeof item> => item !== null),
   }))
 
   // Override tabs computed to filter out undefined values
-  public override tabs = computed(() => 
+  public override tabs = computed(() =>
     this.tabOrdering.value
       .map((id) => this.tabMap.get(id))
       .filter((tab): tab is HoppTab<HoppSOAPTabDocument> => tab !== undefined)
@@ -48,14 +52,16 @@ export class SOAPTabService extends TabService<HoppSOAPTabDocument> {
 
   protected async loadPersistedState(): Promise<PersistableTabState<HoppSOAPTabDocument> | null> {
     const persistenceService = getService(PersistenceService)
-    const savedState = await persistenceService.getNullable(STORE_KEYS.SOAP_TABS)
+    const savedState = await persistenceService.getNullable(
+      STORE_KEYS.SOAP_TABS
+    )
     return savedState as PersistableTabState<HoppSOAPTabDocument> | null
   }
 
   public getTabRefWithSaveContext(ctx: HoppSOAPSaveContext) {
     for (const tab of this.tabMap.values()) {
       if (!tab || !tab.document) continue
-      
+
       if (ctx?.originLocation === "team-collection") {
         if (
           tab.document.saveContext?.originLocation === "team-collection" &&
@@ -84,44 +90,52 @@ export class SOAPTabService extends TabService<HoppSOAPTabDocument> {
   public get activeTabID() {
     return this.currentTabID
   }
-  
+
   public setResponse(tabID: string, response: any) {
     const tab = this.tabMap.get(tabID)
     if (!tab) return
-    
+
     tab.document = {
       ...tab.document,
       response: response,
     }
-    
+
     this.updateTab(tab)
-    
+
     // If response type is 'loading', trigger the send request behavior
-    if (response.type === 'loading' && response.req) {
+    if (response.type === "loading" && response.req) {
       this.sendSoapRequest(tabID)
     }
   }
 
-  public updateRequest(tabID: string, updatedRequest: Partial<HoppSOAPRequest>) {
+  public updateRequest(
+    tabID: string,
+    updatedRequest: Partial<HoppSOAPRequest>
+  ) {
     const tab = this.tabMap.get(tabID)
     if (!tab) return
     Object.assign(tab.document.request, updatedRequest)
     tab.document.isDirty = true
     this.updateTab(tab)
   }
-  
+
   // Cancel an ongoing request
   public cancelRequest(tabID: string): void {
     const tab = this.tabMap.get(tabID)
-    if (!tab || !tab.document.response || tab.document.response.type !== 'loading') return
-    
+    if (
+      !tab ||
+      !tab.document.response ||
+      tab.document.response.type !== "loading"
+    )
+      return
+
     // Set response to cancelled
     this.setResponse(tabID, {
-      type: 'network_fail',
-      error: new Error('Request cancelled'),
+      type: "network_fail",
+      error: new Error("Request cancelled"),
     })
   }
-  
+
   // Send a SOAP request
   public sendSoapRequest(tabID: string): void {
     const tab = this.tabMap.get(tabID)
@@ -131,24 +145,26 @@ export class SOAPTabService extends TabService<HoppSOAPTabDocument> {
     if (!request) return
 
     // Use the local sendRequest method
-    this.sendRequest(request).then(result => {
-      result.stream.subscribe({
-        next: (response: any) => {
-          this.setResponse(tabID, response)
-        },
-        error: (error: any) => {
-          this.setResponse(tabID, {
-            type: 'network_fail',
-            error
-          })
-        }
+    this.sendRequest(request)
+      .then((result) => {
+        result.stream.subscribe({
+          next: (response: any) => {
+            this.setResponse(tabID, response)
+          },
+          error: (error: any) => {
+            this.setResponse(tabID, {
+              type: "network_fail",
+              error,
+            })
+          },
+        })
       })
-    }).catch(error => {
-      this.setResponse(tabID, {
-        type: 'network_fail',
-        error
+      .catch((error) => {
+        this.setResponse(tabID, {
+          type: "network_fail",
+          error,
+        })
       })
-    })
   }
 
   public getTabDocument(tabID: string) {
@@ -157,30 +173,41 @@ export class SOAPTabService extends TabService<HoppSOAPTabDocument> {
 
   public sendRequest(request: HoppSOAPRequest) {
     // Import the network stream creator
-    return import("~/helpers/soap/soap-network").then(({ createSOAPNetworkRequestStream }) => {
-      const [responseStream, cancelRequest] = createSOAPNetworkRequestStream(request, (req, res) => {
-        // Update history when request completes
-        const historyStore = useSOAPHistoryStore()
-        historyStore.addSOAPRequestToHistory(req, res)
-      })
-      
-      return {
-        stream: responseStream,
-        cancel: cancelRequest
+    return import("~/helpers/soap/soap-network").then(
+      ({ createSOAPNetworkRequestStream }) => {
+        const [responseStream, cancelRequest] = createSOAPNetworkRequestStream(
+          request,
+          (req, res) => {
+            // Update history when request completes
+            const historyStore = useSOAPHistoryStore()
+            historyStore.addSOAPRequestToHistory(req, res)
+          }
+        )
+
+        return {
+          stream: responseStream,
+          cancel: cancelRequest,
+        }
       }
-    })
+    )
   }
 
-  public override createNewTab(document: HoppSOAPTabDocument, switchToIt = true) {
+  public override createNewTab(
+    document: HoppSOAPTabDocument,
+    switchToIt = true
+  ) {
     const tab = super.createNewTab(document, switchToIt)
-    console.log('[SOAPTabService] createNewTab called. Tab count:', this.tabMap.size)
-    
+    console.log(
+      "[SOAPTabService] createNewTab called. Tab count:",
+      this.tabMap.size
+    )
+
     // Ensure tab is created with proper values
     if (tab) {
       // Force a watch update to ensure the UI updates
       this.updateTab(tab)
     }
-    
+
     return tab
   }
 
@@ -191,7 +218,7 @@ export class SOAPTabService extends TabService<HoppSOAPTabDocument> {
 
     // For now, just log the save action
     console.log(`Saving request as sample: ${name}`, tab.document.request)
-    
+
     // In a real implementation, this would save to a samples store
     // For now, we'll just mark the tab as not dirty
     tab.document.isDirty = false
@@ -207,18 +234,21 @@ export class SOAPTabService extends TabService<HoppSOAPTabDocument> {
       ...originalTab.document,
       request: {
         ...originalTab.document.request,
-        name: newName || `${originalTab.document.request.name} (Copy)`
+        name: newName || `${originalTab.document.request.name} (Copy)`,
       },
       isDirty: false,
-      response: null
+      response: null,
     }
 
     return this.createNewTab(duplicatedDocument, true)
   }
 
-  public override updateTab(tabUpdateOrId: HoppTab<HoppSOAPTabDocument> | string, properties?: Partial<{ isDirty: boolean }>) {
+  public override updateTab(
+    tabUpdateOrId: HoppTab<HoppSOAPTabDocument> | string,
+    properties?: Partial<{ isDirty: boolean }>
+  ) {
     // Handle case where tabUpdateOrId is a tab object
-    if (typeof tabUpdateOrId !== 'string') {
+    if (typeof tabUpdateOrId !== "string") {
       super.updateTab(tabUpdateOrId)
     } else {
       // Handle case where tabUpdateOrId is a tabID and properties are provided
@@ -230,7 +260,7 @@ export class SOAPTabService extends TabService<HoppSOAPTabDocument> {
         super.updateTab(tab)
       }
     }
-    
+
     // Ensure we always have at least one tab
     if (this.tabMap.size === 0) {
       // this.ensureDefaultTab()
@@ -267,25 +297,30 @@ export class SOAPTabService extends TabService<HoppSOAPTabDocument> {
   public updateOptionTabPreference(tabID: string, preference: SOAPOptionTabs) {
     const tab = this.tabMap.get(tabID)
     if (!tab) {
-      console.warn(`Attempted to update option tab preference for non-existent tab: ${tabID}`)
+      console.warn(
+        `Attempted to update option tab preference for non-existent tab: ${tabID}`
+      )
       return
     }
-    
+
     console.log(`Updating tab ${tabID} preference to: ${preference}`)
-    
+
     // Update the tab document
     tab.document = {
       ...tab.document,
       optionTabPreference: preference,
     }
-    
+
     // Persist the change
     this.updateTab(tab)
-    
+
     // Ensure changes are persisted
     this.updateTab(tab)
-    
+
     this.updateTab(tab)
-    console.log(`Tab preference updated. New value:`, tab.document.optionTabPreference)
+    console.log(
+      `Tab preference updated. New value:`,
+      tab.document.optionTabPreference
+    )
   }
 }

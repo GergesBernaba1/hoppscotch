@@ -1,6 +1,7 @@
-<template>  <div class="flex flex-col flex-1">
+<template>
+  <div class="flex flex-col flex-1">
     <div class="flex justify-between items-center px-4 py-2">
-      <h3 class="font-semibold">{{ t('soap.attachments') }}</h3>
+      <h3 class="font-semibold">{{ t("soap.attachments") }}</h3>
       <div class="flex">
         <HoppButtonSecondary
           :label="t('add')"
@@ -9,19 +10,25 @@
         />
       </div>
     </div>
-      <!-- MTOM toggle -->
+    <!-- MTOM toggle -->
     <div class="flex items-center px-4 py-2 border-b">
-      <HoppToggle
-        :on="useMtom"
-        @toggle="toggleMtomMode"
-      />
-      <span class="ml-2">{{ t('soap.use_mtom') }}</span>
-      <span class="ml-2 text-secondaryLight text-tiny">{{ t('soap.mtom_description') }}</span>
+      <HoppToggle :on="useMtom" @toggle="toggleMtomMode" />
+      <span class="ml-2">{{ t("soap.use_mtom") }}</span>
+      <span class="ml-2 text-secondaryLight text-tiny">{{
+        t("soap.mtom_description")
+      }}</span>
     </div>
-    
+
     <!-- Attachments list -->
-    <div v-if="hasAttachments" class="flex flex-col divide-y divide-dividerLight">
-      <div v-for="(attachment, index) in attachments" :key="index" class="flex flex-col p-4">
+    <div
+      v-if="hasAttachments"
+      class="flex flex-col divide-y divide-dividerLight"
+    >
+      <div
+        v-for="(attachment, index) in attachments"
+        :key="index"
+        class="flex flex-col p-4"
+      >
         <div class="flex justify-between items-center">
           <div class="flex items-center">
             <HoppSmartToggle
@@ -34,13 +41,14 @@
               class="ml-2 px-2 py-1 bg-primary border rounded"
               placeholder="Name"
             />
-          </div>          <HoppButtonSecondary
+          </div>
+          <HoppButtonSecondary
             :icon="IconTrash"
             outline
             @click="removeAttachment(index)"
           />
         </div>
-        
+
         <div class="flex mt-2">
           <input
             v-model="attachment.contentType"
@@ -55,26 +63,37 @@
             placeholder="Content ID"
           />
         </div>
-          <div class="flex items-center mt-2">
+        <div class="flex items-center mt-2">
           <input
+            :id="`fileInput${index}`"
             type="file"
             class="hidden"
-            :id="`fileInput${index}`"
             @change="handleFileUpload($event, index)"
-          />          <HoppButtonSecondary
-            :label="attachment.content ? t('soap.change_file') : t('soap.select_file')"
+          />
+          <HoppButtonSecondary
+            :label="
+              attachment.content ? t('soap.change_file') : t('soap.select_file')
+            "
             class="flex-shrink-0"
             @click="selectFile(index)"
           />
-          <span v-if="attachment.content" class="ml-2 text-secondaryLight truncate">
+          <span
+            v-if="attachment.content"
+            class="ml-2 text-secondaryLight truncate"
+          >
             {{ getFileInfo(attachment, index) }}
           </span>
-          <span v-else class="ml-2 text-secondaryLight">{{ t('soap.no_file_selected') }}</span>
+          <span v-else class="ml-2 text-secondaryLight">{{
+            t("soap.no_file_selected")
+          }}</span>
         </div>
       </div>
     </div>
-      <div v-else class="flex flex-col items-center justify-center flex-1 p-4 text-secondaryLight">
-      <span class="text-center">{{ t('soap.no_attachments') }}</span>
+    <div
+      v-else
+      class="flex flex-col items-center justify-center flex-1 p-4 text-secondaryLight"
+    >
+      <span class="text-center">{{ t("soap.no_attachments") }}</span>
       <HoppButtonSecondary
         :label="t('add')"
         class="mt-4"
@@ -85,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { useToast } from "../../composables/toast"
 import IconTrash from "../../components/icons/IconTrash.vue"
@@ -107,11 +126,11 @@ type SOAPAttachment = {
 const props = defineProps({
   tabId: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 })
 
-const emit = defineEmits(['update:attachments', 'update:useMtom'])
+const emit = defineEmits(["update:attachments", "update:useMtom"])
 
 // Mock data - in a real implementation these would be provided via props
 const attachments = ref<SOAPAttachment[]>([])
@@ -125,31 +144,33 @@ function addAttachment() {
     contentType: "application/octet-stream",
     contentId: `att-${Date.now()}`,
     content: null,
-    active: true
+    active: true,
   }
-  
+
   attachments.value.push(newAttachment)
-  emit('update:attachments', attachments.value)
+  emit("update:attachments", attachments.value)
 }
 
 function removeAttachment(index: number) {
   attachments.value.splice(index, 1)
-  emit('update:attachments', attachments.value)
+  emit("update:attachments", attachments.value)
 }
 
 function toggleAttachment(index: number) {
   attachments.value[index].active = !attachments.value[index].active
-  emit('update:attachments', attachments.value)
+  emit("update:attachments", attachments.value)
 }
 
 function toggleMtomMode() {
   useMtom.value = !useMtom.value
-  emit('update:useMtom', useMtom.value)
+  emit("update:useMtom", useMtom.value)
 }
 
 function selectFile(index: number) {
   // Access the file input by ID and trigger a click
-  const fileInput = document.querySelector(`#fileInput${index}`) as HTMLInputElement
+  const fileInput = document.querySelector(
+    `#fileInput${index}`
+  ) as HTMLInputElement
   if (fileInput) {
     fileInput.click()
   }
@@ -157,27 +178,30 @@ function selectFile(index: number) {
 
 function handleFileUpload(event: Event, index: number) {
   const target = event.target as HTMLInputElement
-  
+
   try {
     if (target && target.files && target.files.length > 0) {
       const file = target.files[0]
-      
+
       // Update the attachment with the selected file
       attachments.value[index].content = file
-      
+
       // Try to set a more specific content type based on the file
       if (file.type) {
         attachments.value[index].contentType = file.type
       }
-      
+
       // If no Content-ID is set, generate one based on filename
-      if (!attachments.value[index].contentId || attachments.value[index].contentId === `att-${Date.now()}`) {
-        const fileName = file.name.replace(/[^a-zA-Z0-9]/g, '_');
+      if (
+        !attachments.value[index].contentId ||
+        attachments.value[index].contentId === `att-${Date.now()}`
+      ) {
+        const fileName = file.name.replace(/[^a-zA-Z0-9]/g, "_")
         attachments.value[index].contentId = `${fileName}@hoppscotch`
       }
-      
+
       // Update attachments
-      emit('update:attachments', attachments.value)
+      emit("update:attachments", attachments.value)
     }
   } catch (error) {
     console.error("File upload error:", error)
@@ -193,13 +217,13 @@ function getFileInfo(attachment: SOAPAttachment, index: number) {
 }
 
 function formatFileSize(bytes: number) {
-  if (bytes === 0) return '0 B'
-  
+  if (bytes === 0) return "0 B"
+
   const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
+  const sizes = ["B", "KB", "MB", "GB"]
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
 }
 </script>
 

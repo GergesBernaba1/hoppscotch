@@ -84,11 +84,8 @@
               workspaceSelectorFlagEnabled && !currentUser,
           }"
         >
-        <!--for login button-->
-          <div
-            v-if="false"
-            class="inline-flex items-center space-x-2"
-          >
+          <!--for login button-->
+          <div v-if="false" class="inline-flex items-center space-x-2">
             <HoppButtonSecondary
               v-if="!workspaceSelectorFlagEnabled"
               :icon="IconUploadCloud"

@@ -54,10 +54,7 @@ export class KernelInterceptorNativeStore extends Service {
   }
 
   private async loadStore(): Promise<void> {
-    const loadResult = await store.get(
-      STORE_NAMESPACE,
-      STORE_KEYS.SETTINGS
-    )
+    const loadResult = await store.get(STORE_NAMESPACE, STORE_KEYS.SETTINGS)
 
     if ((loadResult as any)._tag === "Right" && (loadResult as any).right) {
       const storedData = (loadResult as any).right as StoredData
@@ -74,15 +71,14 @@ export class KernelInterceptorNativeStore extends Service {
   }
 
   private setupWatchers() {
-    store.watch(STORE_NAMESPACE, STORE_KEYS.SETTINGS).on(
-      "change",
-      async ({ value }: { value: any }) => {
+    store
+      .watch(STORE_NAMESPACE, STORE_KEYS.SETTINGS)
+      .on("change", async ({ value }: { value: any }) => {
         if (value) {
           const storeData = value as StoredData
           this.domainSettings = new Map(Object.entries(storeData.domains))
         }
-      }
-    )
+      })
   }
 
   private async persistStore(): Promise<void> {
@@ -98,7 +94,10 @@ export class KernelInterceptorNativeStore extends Service {
       storeData
     )
     if ((saveResult as any)._tag === "Left") {
-      console.error("[AgentStore] Failed to save store:", (saveResult as any).left)
+      console.error(
+        "[AgentStore] Failed to save store:",
+        (saveResult as any).left
+      )
     }
   }
 

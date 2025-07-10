@@ -1,6 +1,6 @@
 /**
  * Persistence service module
- * 
+ *
  * This module provides persistence functionality for the Hoppscotch application.
  * It exports the main PersistenceService class and related constants.
  */

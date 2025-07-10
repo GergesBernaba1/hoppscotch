@@ -11,7 +11,7 @@ import {
 import { TeamService } from 'src/team/team.service';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import * as E from 'fp-ts/Either';
-import { TeamMemberRole } from '@prisma/client';
+import { TeamMemberRole } from '../team/team.model';
 import { throwErr } from 'src/utils';
 
 /**

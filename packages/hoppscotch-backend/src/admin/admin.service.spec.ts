@@ -117,7 +117,7 @@ describe('AdminService', () => {
           NOT: {
             inviteeEmail: {
               in: [dbAdminUsers[0].email],
-              mode: 'insensitive',
+              //   mode: 'insensitive',
             },
           },
         },
@@ -228,7 +228,7 @@ describe('AdminService', () => {
         where: {
           inviteeEmail: {
             in: [invitedUsers[0].inviteeEmail],
-            mode: 'insensitive',
+            //   mode: 'insensitive',
           },
         },
       });

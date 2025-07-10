@@ -1,5 +1,5 @@
 datasource db {
-  provider = "postgresql"
+  provider = "sqlserver"
   url      = env("DATABASE_URL")
 }
 
@@ -20,7 +20,7 @@ model Team {
 
 model TeamMember {
   id      String         @id @default(uuid()) // Membership ID
-  role    TeamMemberRole
+  role    String // was TeamMemberRole
   userUid String
   teamID  String
   team    Team           @relation(fields: [teamID], references: [id], onDelete: Cascade)
@@ -34,7 +34,7 @@ model TeamInvitation {
   team         Team           @relation(fields: [teamID], references: [id], onDelete: Cascade)
   creatorUid   String
   inviteeEmail String
-  inviteeRole  TeamMemberRole
+  inviteeRole  String // was TeamMemberRole
 
   @@unique([teamID, inviteeEmail])
   @@index([teamID])
@@ -43,39 +43,39 @@ model TeamInvitation {
 model TeamCollection {
   id         String           @id @default(cuid())
   parentID   String?
-  data       Json?
-  parent     TeamCollection?  @relation("TeamCollectionChildParent", fields: [parentID], references: [id])
+  data       String? // was Json?
+  parent     TeamCollection?  @relation("TeamCollectionChildParent", fields: [parentID], references: [id], onDelete: NoAction, onUpdate: NoAction)
   children   TeamCollection[] @relation("TeamCollectionChildParent")
   requests   TeamRequest[]
   teamID     String
   team       Team             @relation(fields: [teamID], references: [id], onDelete: Cascade)
   title      String
   orderIndex Int
-  createdOn  DateTime         @default(now()) @db.Timestamp(3)
-  updatedOn  DateTime         @updatedAt @db.Timestamp(3)
+  createdOn  DateTime         @default(now())
+  updatedOn  DateTime         @updatedAt
 }
 
 model TeamRequest {
   id           String         @id @default(cuid())
   collectionID String
-  collection   TeamCollection @relation(fields: [collectionID], references: [id], onDelete: Cascade)
+  collection   TeamCollection @relation(fields: [collectionID], references: [id], onDelete: NoAction, onUpdate: NoAction)
   teamID       String
   team         Team           @relation(fields: [teamID], references: [id], onDelete: Cascade)
   title        String
-  request      Json
+  request      String
   orderIndex   Int
-  createdOn    DateTime       @default(now()) @db.Timestamp(3)
-  updatedOn    DateTime       @updatedAt @db.Timestamp(3)
+  createdOn    DateTime       @default(now())
+  updatedOn    DateTime       @updatedAt
 }
 
 model Shortcode {
   id              String   @id @unique
-  request         Json
-  embedProperties Json?
+  request         String
+  embedProperties String?
   creatorUid      String?
   User            User?    @relation(fields: [creatorUid], references: [uid])
   createdOn       DateTime @default(now())
-  updatedOn       DateTime @default(now()) @updatedAt
+  updatedOn       DateTime @updatedAt
 
   @@unique(fields: [id, creatorUid], name: "creator_uid_shortcode_unique")
 }
@@ -85,7 +85,7 @@ model TeamEnvironment {
   teamID    String
   team      Team   @relation(fields: [teamID], references: [id], onDelete: Cascade)
   name      String
-  variables Json
+  variables String
 }
 
 model User {
@@ -102,11 +102,11 @@ model User {
   UserEnvironments     UserEnvironment[]
   userCollections      UserCollection[]
   userRequests         UserRequest[]
-  currentRESTSession   Json?
-  currentGQLSession    Json?
-  lastLoggedOn         DateTime?             @db.Timestamp(3)
-  lastActiveOn         DateTime?             @db.Timestamp(3)
-  createdOn            DateTime              @default(now()) @db.Timestamp(3)
+  currentRESTSession   String?
+  currentGQLSession    String?
+  lastLoggedOn         DateTime?
+  lastActiveOn         DateTime?
+  createdOn            DateTime              @default(now())
   invitedUsers         InvitedUsers[]
   shortcodes           Shortcode[]
   personalAccessTokens PersonalAccessToken[]
@@ -121,7 +121,7 @@ model Account {
   providerRefreshToken String?
   providerAccessToken  String?
   providerScope        String?
-  loggedIn             DateTime @default(now()) @db.Timestamp(3)
+  loggedIn             DateTime @default(now())
 
   @@unique(fields: [provider, providerAccountId], name: "verifyProviderAccount")
 }
@@ -131,7 +131,7 @@ model VerificationToken {
   token            String   @unique @default(cuid())
   userUid          String
   user             User     @relation(fields: [userUid], references: [uid], onDelete: Cascade)
-  expiresOn        DateTime @db.Timestamp(3)
+  expiresOn        DateTime
 
   @@unique(fields: [deviceIdentifier, token], name: "passwordless_deviceIdentifier_tokens")
 }
@@ -140,24 +140,19 @@ model UserSettings {
   id         String   @id @default(cuid())
   userUid    String   @unique
   user       User     @relation(fields: [userUid], references: [uid], onDelete: Cascade)
-  properties Json
-  updatedOn  DateTime @updatedAt @db.Timestamp(3)
+  properties String
+  updatedOn  DateTime @updatedAt
 }
 
 model UserHistory {
   id               String   @id @default(cuid())
   userUid          String
   user             User     @relation(fields: [userUid], references: [uid], onDelete: Cascade)
-  reqType          ReqType
-  request          Json
-  responseMetadata Json
+  reqType          String // was ReqType
+  request          String
+  responseMetadata String
   isStarred        Boolean
-  executedOn       DateTime @default(now()) @db.Timestamp(3)
-}
-
-enum ReqType {
-  REST
-  GQL
+  executedOn       DateTime @default(now())
 }
 
 model UserEnvironment {
@@ -165,7 +160,7 @@ model UserEnvironment {
   userUid   String
   user      User    @relation(fields: [userUid], references: [uid], onDelete: Cascade)
   name      String?
-  variables Json
+  variables String // was Json
   isGlobal  Boolean
 }
 
@@ -174,43 +169,37 @@ model InvitedUsers {
   user         User     @relation(fields: [adminUid], references: [uid], onDelete: Cascade)
   adminEmail   String
   inviteeEmail String   @unique
-  invitedOn    DateTime @default(now()) @db.Timestamp(3)
+  invitedOn    DateTime @default(now())
 }
 
 model UserRequest {
   id             String         @id @default(cuid())
-  userCollection UserCollection @relation(fields: [collectionID], references: [id])
+  userCollection UserCollection @relation(fields: [collectionID], references: [id], onDelete: NoAction, onUpdate: NoAction)
   collectionID   String
   userUid        String
   user           User           @relation(fields: [userUid], references: [uid], onDelete: Cascade)
   title          String
-  request        Json
-  type           ReqType
+  request        String
+  type           String // was ReqType
   orderIndex     Int
-  createdOn      DateTime       @default(now()) @db.Timestamp(3)
-  updatedOn      DateTime       @updatedAt @db.Timestamp(3)
+  createdOn      DateTime       @default(now())
+  updatedOn      DateTime       @updatedAt
 }
 
 model UserCollection {
   id         String           @id @default(cuid())
   parentID   String?
-  parent     UserCollection?  @relation("ParentUserCollection", fields: [parentID], references: [id], onDelete: Cascade)
+  parent     UserCollection?  @relation("ParentUserCollection", fields: [parentID], references: [id], onDelete: NoAction, onUpdate: NoAction)
   children   UserCollection[] @relation("ParentUserCollection")
   requests   UserRequest[]
   userUid    String
   user       User             @relation(fields: [userUid], references: [uid], onDelete: Cascade)
   title      String
-  data       Json?
+  data       String? // was Json?
   orderIndex Int
-  type       ReqType
-  createdOn  DateTime         @default(now()) @db.Timestamp(3)
-  updatedOn  DateTime         @updatedAt @db.Timestamp(3)
-}
-
-enum TeamMemberRole {
-  OWNER
-  VIEWER
-  EDITOR
+  type       String // was ReqType
+  createdOn  DateTime         @default(now())
+  updatedOn  DateTime         @updatedAt
 }
 
 model InfraConfig {
@@ -219,8 +208,8 @@ model InfraConfig {
   value                  String?
   lastSyncedEnvFileValue String?
   isEncrypted            Boolean  @default(false) // Use case: Let's say, Admin wants to store a Secret Key, but doesn't want to store it in plain text in `value` column
-  createdOn              DateTime @default(now()) @db.Timestamp(3)
-  updatedOn              DateTime @updatedAt @db.Timestamp(3)
+  createdOn              DateTime @default(now())
+  updatedOn              DateTime @updatedAt
 }
 
 model PersonalAccessToken {
@@ -229,9 +218,9 @@ model PersonalAccessToken {
   user      User      @relation(fields: [userUid], references: [uid], onDelete: Cascade)
   label     String
   token     String    @unique @default(uuid())
-  expiresOn DateTime? @db.Timestamp(3)
-  createdOn DateTime  @default(now()) @db.Timestamp(3)
-  updatedOn DateTime  @updatedAt @db.Timestamp(3)
+  expiresOn DateTime?
+  createdOn DateTime  @default(now())
+  updatedOn DateTime  @updatedAt
 }
 
 model InfraToken {
@@ -239,7 +228,7 @@ model InfraToken {
   creatorUid String
   label      String
   token      String    @unique @default(uuid())
-  expiresOn  DateTime? @db.Timestamp(3)
-  createdOn  DateTime  @default(now()) @db.Timestamp(3)
-  updatedOn  DateTime  @default(now()) @db.Timestamp(3)
+  expiresOn  DateTime?
+  createdOn  DateTime  @default(now())
+  updatedOn  DateTime  @default(now())
 }

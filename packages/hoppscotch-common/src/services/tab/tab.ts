@@ -114,7 +114,7 @@ export abstract class TabService<Doc>
 
   public getActiveTabs(): Readonly<ComputedRef<HoppTab<Doc>[]>> {
     return shallowReadonly(
-      computed(() => 
+      computed(() =>
         this.tabOrdering.value
           .map((x) => this.tabMap.get(x))
           .filter((tab): tab is HoppTab<Doc> => tab !== undefined)
@@ -203,13 +203,13 @@ export abstract class TabService<Doc>
         const tab = this.tabMap.get(tabID)
         // Skip undefined tabs
         if (!tab) return null
-        
+
         return {
           tabID: tab.id,
           doc: tab.document,
         }
       })
-      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .filter((item): item is NonNullable<typeof item> => item !== null),
   }))
 
   public getTabsRefTo(func: (tab: HoppTab<Doc>) => boolean) {
@@ -226,7 +226,7 @@ export abstract class TabService<Doc>
     }
   }
 
-  public tabs = computed(() => 
+  public tabs = computed(() =>
     this.tabOrdering.value
       .map((id) => this.tabMap.get(id))
       .filter((tab): tab is HoppTab<Doc> => tab !== undefined)

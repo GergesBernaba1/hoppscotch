@@ -301,7 +301,7 @@ export class ShortcodeService implements UserDataHandler, OnModuleInit {
             User: {
               email: {
                 equals: userEmail,
-                mode: 'insensitive',
+                //   mode: 'insensitive',
               },
             },
           }

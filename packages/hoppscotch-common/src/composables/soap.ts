@@ -7,14 +7,14 @@ import { useSOAPHistoryStore } from "../newstore/SOAPHistory"
  */
 export function useSOAPEndpointHistory() {
   const historyStore = useSOAPHistoryStore()
-  
+
   return computed(() => {
     // Extract all URLs from history
-    const urls = historyStore.history.map(entry => entry.request.endpoint)
-    
+    const urls = historyStore.history.map((entry) => entry.request.endpoint)
+
     // Filter out duplicates and empty strings
-    const uniqueUrls = [...new Set(urls)].filter(url => !!url)
-    
+    const uniqueUrls = [...new Set(urls)].filter((url) => !!url)
+
     return uniqueUrls
   })
 }

@@ -118,18 +118,20 @@ onMounted(async () => {
   const tabService = source === "GraphQL" ? gqlTabs : restTabs
 
   if (
-    (tabService.currentActiveTab.value.document as any).request?.auth?.authType ===
-    "oauth-2"
+    (tabService.currentActiveTab.value.document as any).request?.auth
+      ?.authType === "oauth-2"
   ) {
-    (tabService.currentActiveTab.value.document as any).request.auth.grantTypeInfo.token =
-      tokenInfo.right.access_token
+    ;(
+      tabService.currentActiveTab.value.document as any
+    ).request.auth.grantTypeInfo.token = tokenInfo.right.access_token
 
     if (
-      (tabService.currentActiveTab.value.document as any).request.auth.grantTypeInfo
-        .grantType === "AUTHORIZATION_CODE"
+      (tabService.currentActiveTab.value.document as any).request.auth
+        .grantTypeInfo.grantType === "AUTHORIZATION_CODE"
     ) {
-      (tabService.currentActiveTab.value.document as any).request.auth.grantTypeInfo.refreshToken =
-        tokenInfo.right.refresh_token
+      ;(
+        tabService.currentActiveTab.value.document as any
+      ).request.auth.grantTypeInfo.refreshToken = tokenInfo.right.refresh_token
     }
 
     toast.success(t("authorization.oauth.token_fetched_successfully"))

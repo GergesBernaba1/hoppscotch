@@ -1,10 +1,21 @@
 import { ref } from "vue"
 import { useI18n } from "vue-i18n"
-import { exportSOAPCollection, importSOAPCollection } from "../helpers/soap/soap-import-export"
-import { SOAPCollection, SOAPCollectionRequest, useSOAPCollectionStore } from "../newstore/SOAPCollection"
+import {
+  exportSOAPCollection,
+  importSOAPCollection,
+} from "../helpers/soap/soap-import-export"
+import {
+  SOAPCollection,
+  SOAPCollectionRequest,
+  useSOAPCollectionStore,
+} from "../newstore/SOAPCollection"
 import { useSOAPTabService } from "../composables/useSOAPTab"
 import { makeSOAPRequest } from "@hoppscotch/data"
-import { HoppButtonSecondary, HoppButtonPrimary, HoppSmartModal } from "@hoppscotch/ui"
+import {
+  HoppButtonSecondary,
+  HoppButtonPrimary,
+  HoppSmartModal,
+} from "@hoppscotch/ui"
 
 export default {
   name: "SoapCollections",
@@ -46,7 +57,7 @@ export default {
 
     // Handle editing a collection
     function editCollection(collectionID) {
-      const collection = collections.value.find(c => c.id === collectionID)
+      const collection = collections.value.find((c) => c.id === collectionID)
       if (collection) {
         newCollectionName.value = collection.name
         editingCollectionID.value = collectionID
@@ -57,10 +68,12 @@ export default {
     // Save new or edited collection
     function saveCollection() {
       if (!newCollectionName.value.trim()) return
-      
+
       if (editingCollectionID.value) {
         // Edit existing collection
-        const collection = collections.value.find(c => c.id === editingCollectionID.value)
+        const collection = collections.value.find(
+          (c) => c.id === editingCollectionID.value
+        )
         if (collection) {
           collection.name = newCollectionName.value.trim()
           collectionsStore.saveCollections()
@@ -69,7 +82,7 @@ export default {
         // Create new collection
         collectionsStore.createCollection(newCollectionName.value.trim())
       }
-      
+
       showNewCollectionModal.value = false
     }
 
@@ -100,9 +113,9 @@ export default {
       const newRequest = makeSOAPRequest({
         name: "New Request",
         endpoint: "",
-        soapVersion: "1.1"
+        soapVersion: "1.1",
       })
-      
+
       // Add to collection
       collectionsStore.addRequest(collectionID, newRequest, "New Request")
     }
@@ -128,12 +141,12 @@ export default {
       if (collections.value.length === 0) {
         return
       }
-      
+
       // Create a download for the collection JSON
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(
-        JSON.stringify(collections.value, null, 2)
-      )
-      
+      const dataStr =
+        "data:text/json;charset=utf-8," +
+        encodeURIComponent(JSON.stringify(collections.value, null, 2))
+
       const downloadAnchor = document.createElement("a")
       downloadAnchor.setAttribute("href", dataStr)
       downloadAnchor.setAttribute("download", "soap_collections.json")
@@ -147,22 +160,25 @@ export default {
       const fileInput = document.createElement("input")
       fileInput.type = "file"
       fileInput.accept = "application/json"
-      
+
       fileInput.onchange = (e) => {
         const file = e.target.files[0]
         if (!file) return
-        
+
         const reader = new FileReader()
         reader.onload = (e) => {
           try {
             const importedData = JSON.parse(e.target.result)
-            
+
             if (Array.isArray(importedData)) {
               // Handle array of collections
-              importedData.forEach(collection => {
+              importedData.forEach((collection) => {
                 collectionsStore.importCollection(collection)
               })
-            } else if (typeof importedData === "object" && importedData !== null) {
+            } else if (
+              typeof importedData === "object" &&
+              importedData !== null
+            ) {
               // Handle single collection
               collectionsStore.importCollection(importedData)
             }
@@ -173,7 +189,7 @@ export default {
         }
         reader.readAsText(file)
       }
-      
+
       fileInput.click()
     }
 
@@ -198,7 +214,7 @@ export default {
       selectFolder,
       loadRequest,
       exportCollections,
-      importCollections
+      importCollections,
     }
-  }
+  },
 }

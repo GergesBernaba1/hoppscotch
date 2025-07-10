@@ -196,7 +196,7 @@ export class TeamCollectionService {
     if (!Array.isArray(collectionsList.right))
       return E.left(TEAM_COLL_INVALID_JSON);
 
-    // Get number of root or child collections for destCollectionID(if destcollectionID != null) or destTeamID(if destcollectionID == null)
+    // Get number of root or child collections for destCollectionID(if destCollectionID != null) or destTeamID(if destCollectionID == null)
     const count = !destCollectionID
       ? await this.getRootCollectionsCount(destTeamID)
       : await this.getChildCollectionsCount(destCollectionID);
@@ -270,7 +270,7 @@ export class TeamCollectionService {
         return E.left(deletedTeamCollection.left);
     }
 
-    // Get number of root or child collections for destCollectionID(if destcollectionID != null) or destTeamID(if destcollectionID == null)
+    // Get number of root or child collections for destCollectionID(if destCollectionID != null) or destTeamID(if destCollectionID == null)
     const count = !destCollectionID
       ? await this.getRootCollectionsCount(destTeamID)
       : await this.getChildCollectionsCount(destCollectionID);
@@ -341,9 +341,9 @@ export class TeamCollectionService {
           team: true,
         },
       });
-
+      if (!teamCollection) return E.left(TEAM_INVALID_COLL_ID);
       return E.right(teamCollection.team);
-    } catch (error) {
+    } catch {
       return E.left(TEAM_INVALID_COLL_ID);
     }
   }
@@ -449,7 +449,7 @@ export class TeamCollectionService {
         },
       );
       return E.right(teamCollection);
-    } catch (error) {
+    } catch {
       return E.left(TEAM_COLL_NOT_FOUND);
     }
   }
@@ -471,7 +471,7 @@ export class TeamCollectionService {
       });
 
       return O.some(true);
-    } catch (error) {
+    } catch {
       return O.none;
     }
   }
@@ -602,7 +602,7 @@ export class TeamCollectionService {
       );
 
       return E.right(this.cast(updatedTeamCollection));
-    } catch (error) {
+    } catch {
       return E.left(TEAM_COLL_NOT_FOUND);
     }
   }
@@ -646,7 +646,7 @@ export class TeamCollectionService {
       });
 
       return E.right(deletedTeamCollection);
-    } catch (error) {
+    } catch {
       return E.left(TEAM_COLL_NOT_FOUND);
     }
   }
@@ -747,7 +747,7 @@ export class TeamCollectionService {
       });
 
       return E.right(this.cast(updatedCollection));
-    } catch (error) {
+    } catch {
       return E.left(TEAM_COLL_NOT_FOUND);
     }
   }
@@ -932,7 +932,7 @@ export class TeamCollectionService {
             },
           });
           // Step 2: Update orderIndex of collection to length of list
-          const updatedTeamCollection = await tx.teamCollection.update({
+          await tx.teamCollection.update({
             where: { id: collection.right.id },
             data: {
               orderIndex: await this.getCollectionCount(
@@ -951,7 +951,7 @@ export class TeamCollectionService {
         );
 
         return E.right(true);
-      } catch (error) {
+      } catch {
         return E.left(TEAM_COL_REORDERING_FAILED);
       }
     }
@@ -989,7 +989,7 @@ export class TeamCollectionService {
           },
         });
         // Step 3: Update OrderIndex of collection
-        const updatedTeamCollection = await tx.teamCollection.update({
+        await tx.teamCollection.update({
           where: { id: collection.right.id },
           data: {
             orderIndex: isMovingUp
@@ -1008,7 +1008,7 @@ export class TeamCollectionService {
       );
 
       return E.right(true);
-    } catch (error) {
+    } catch {
       return E.left(TEAM_COL_REORDERING_FAILED);
     }
   }
@@ -1078,7 +1078,7 @@ export class TeamCollectionService {
       );
 
       return E.right(this.cast(updatedTeamCollection));
-    } catch (e) {
+    } catch {
       return E.left(TEAM_COLL_NOT_FOUND);
     }
   }
@@ -1184,7 +1184,7 @@ export class TeamCollectionService {
     try {
       const res = await this.prisma.$queryRaw<SearchQueryReturnType[]>(query);
       return E.right(res);
-    } catch (error) {
+    } catch {
       return E.left(TEAM_COL_SEARCH_FAILED);
     }
   }
@@ -1222,7 +1222,7 @@ export class TeamCollectionService {
     try {
       const res = await this.prisma.$queryRaw<SearchQueryReturnType[]>(query);
       return E.right(res);
-    } catch (error) {
+    } catch {
       return E.left(TEAM_REQ_SEARCH_FAILED);
     }
   }
@@ -1262,14 +1262,13 @@ export class TeamCollectionService {
       )
       SELECT * FROM collection_tree;
       `;
-      const res = await this.prisma.$queryRaw<ParentTreeQueryReturnType[]>(
-        query,
-      );
+      const res =
+        await this.prisma.$queryRaw<ParentTreeQueryReturnType[]>(query);
 
       const collectionParentTree = this.generateParentTree(res);
       return E.right(collectionParentTree);
-    } catch (error) {
-      E.left(TEAM_COLL_PARENT_TREE_GEN_FAILED);
+    } catch {
+      return E.left(TEAM_COLL_PARENT_TREE_GEN_FAILED);
     }
   }
 
@@ -1353,13 +1352,12 @@ export class TeamCollectionService {
       SELECT * FROM request_collection_tree;
 
       `;
-      const res = await this.prisma.$queryRaw<ParentTreeQueryReturnType[]>(
-        query,
-      );
+      const res =
+        await this.prisma.$queryRaw<ParentTreeQueryReturnType[]>(query);
 
       const requestParentTree = this.generateParentTree(res);
       return E.right(requestParentTree);
-    } catch (error) {
+    } catch {
       return E.left(TEAM_REQ_PARENT_TREE_GEN_FAILED);
     }
   }
@@ -1450,7 +1448,7 @@ export class TeamCollectionService {
         folders: await this.getCollectionTreeForCLI(collection.id),
         requests: await this.getAllRequestsInCollection(collection.id),
       });
-    } catch (error) {
+    } catch {
       return E.left(TEAM_COLL_NOT_FOUND);
     }
   }

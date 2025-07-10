@@ -22,7 +22,7 @@ export type SOAPAttachment = {
 function arrayBufferToBase64(buffer: string | ArrayBuffer | null): string {
   if (!buffer) return ""
   if (typeof buffer === "string") return buffer
-  
+
   const bytes = new Uint8Array(buffer)
   let binary = ""
   for (let i = 0; i < bytes.byteLength; i++) {
@@ -45,16 +45,16 @@ export const createMTOMMessage = (
 ): { headers: HoppSOAPHeader[]; body: string } => {
   // Generate a boundary for the multipart message
   const boundary = `----=_hoppscotch_soap_mtom_${Date.now().toString(16)}`
-  
+
   // Create headers for the request
   const headers: HoppSOAPHeader[] = [
     {
       key: "Content-Type",
       value: `multipart/related; type="application/xop+xml"; boundary="${boundary}"; start="<soap-envelope>"; start-info="text/xml"`,
       active: true,
-    }
+    },
   ]
-  
+
   // Add SOAPAction header for SOAP 1.1 if provided
   if (soapAction) {
     headers.push({
@@ -63,37 +63,40 @@ export const createMTOMMessage = (
       active: true,
     })
   }
-  
+
   // Start building the multipart body
   let body = ""
-  
+
   // Add the SOAP envelope part
   body += `--${boundary}\r\n`
-  body += 'Content-Type: application/xop+xml; charset=UTF-8; type="text/xml"\r\n'
-  body += 'Content-Transfer-Encoding: 8bit\r\n'
-  body += 'Content-ID: <soap-envelope>\r\n\r\n'
+  body +=
+    'Content-Type: application/xop+xml; charset=UTF-8; type="text/xml"\r\n'
+  body += "Content-Transfer-Encoding: 8bit\r\n"
+  body += "Content-ID: <soap-envelope>\r\n\r\n"
   body += soapEnvelope
-  body += '\r\n'
-  
+  body += "\r\n"
+
   // Add each attachment
-  attachments.filter(att => att.active).forEach(attachment => {
-    body += `--${boundary}\r\n`
-    body += `Content-Type: ${attachment.contentType}\r\n`
-    body += 'Content-Transfer-Encoding: base64\r\n'
-    body += `Content-ID: <${attachment.contentId}>\r\n\r\n`
-    
-    if (attachment.content) {
-      // Convert binary content to base64
-      body += arrayBufferToBase64(attachment.content)
-    } else {
-      body += '[No content]'
-    }
-    body += '\r\n'
-  })
-  
+  attachments
+    .filter((att) => att.active)
+    .forEach((attachment) => {
+      body += `--${boundary}\r\n`
+      body += `Content-Type: ${attachment.contentType}\r\n`
+      body += "Content-Transfer-Encoding: base64\r\n"
+      body += `Content-ID: <${attachment.contentId}>\r\n\r\n`
+
+      if (attachment.content) {
+        // Convert binary content to base64
+        body += arrayBufferToBase64(attachment.content)
+      } else {
+        body += "[No content]"
+      }
+      body += "\r\n"
+    })
+
   // Close the multipart message
   body += `--${boundary}--\r\n`
-  
+
   return { headers, body }
 }
 

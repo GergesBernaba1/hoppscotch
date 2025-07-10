@@ -80,7 +80,7 @@ export class SOAPTabService extends TabService<SOAPTabDocument> {
 
   public async init() {
     await super.init()
-    
+
     // Create a default tab if no tabs exist
     if (this.tabMap.size === 0) {
       this.createNewTab({
@@ -105,7 +105,9 @@ export class SOAPTabService extends TabService<SOAPTabDocument> {
 
   protected async loadPersistedState(): Promise<any | null> {
     const persistenceService = getService(PersistenceService)
-    const savedState = await persistenceService.getNullable(STORE_KEYS.SOAP_TABS)
+    const savedState = await persistenceService.getNullable(
+      STORE_KEYS.SOAP_TABS
+    )
     return savedState
   }
 
@@ -120,10 +122,7 @@ export class SOAPTabService extends TabService<SOAPTabDocument> {
       (req, res) => {
         if (res.type !== "loading") {
           try {
-            historyStore.addSOAPRequestToHistory(
-              req,
-              res
-            )
+            historyStore.addSOAPRequestToHistory(req, res)
           } catch (error) {
             console.error("Failed to add request to history:", error)
           }
@@ -144,7 +143,7 @@ export class SOAPTabService extends TabService<SOAPTabDocument> {
       },
     }
   }
-  
+
   /**
    * Update a request in a tab
    * @param tabID ID of the tab to update
@@ -153,19 +152,19 @@ export class SOAPTabService extends TabService<SOAPTabDocument> {
   updateRequest(tabID: string, updatedRequest: Partial<LocalHoppSOAPRequest>) {
     const tab = this.tabMap.get(tabID)
     if (!tab) return
-    
+
     // Update the request while keeping the same reference
     const request = tab.document.request
-    
+
     // Apply updates
     Object.assign(request, updatedRequest)
-    
+
     // Mark the tab as dirty
     tab.document.isDirty = true
     // Update tab state
     this.updateTab(tab)
   }
-  
+
   /**
    * Get a tab's document
    * @param tabID ID of the tab

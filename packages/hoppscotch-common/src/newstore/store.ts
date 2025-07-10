@@ -18,4 +18,4 @@ export class Store<T> {
   subscribe(callback: (value: T) => void) {
     return this.state.subscribe(callback)
   }
-} 
+}

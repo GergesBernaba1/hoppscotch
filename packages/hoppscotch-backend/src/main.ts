@@ -8,7 +8,6 @@ import { emitGQLSchemaFile } from './gql-schema';
 import { checkEnvironmentAuthProvider } from './utils';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { InfraTokensController } from './infra-token/infra-token.controller';
 import { InfraTokenModule } from './infra-token/infra-token.module';
 
 function setupSwagger(app) {
@@ -41,13 +40,32 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
-
+  console.log(`Running in development:  ${configService.get('PRODUCTION')}`);
   console.log(`Running in production:  ${configService.get('PRODUCTION')}`);
   console.log(`Port: ${configService.get('PORT')}`);
 
+  // Check required environment variables
+  const requiredEnvVars = [
+    'DATABASE_URL',
+    'JWT_SECRET',
+    'VITE_ALLOWED_AUTH_PROVIDERS',
+    'WHITELISTED_ORIGINS',
+    'SESSION_SECRET',
+  ];
+
+  const missingVars = requiredEnvVars.filter(
+    (varName) => !configService.get(varName),
+  );
+
+  if (missingVars.length > 0) {
+    console.error('❌ Missing required environment variables:');
+    missingVars.forEach((varName) => console.error(`   - ${varName}`));
+    console.error('❌ Please create a .env file with these variables');
+    process.exit(1);
+  }
+
   checkEnvironmentAuthProvider(
-    configService.get('INFRA.VITE_ALLOWED_AUTH_PROVIDERS') ??
-      configService.get('VITE_ALLOWED_AUTH_PROVIDERS'),
+    configService.get('VITE_ALLOWED_AUTH_PROVIDERS'),
   );
 
   app.use(

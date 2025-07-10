@@ -88,15 +88,14 @@ export class KernelInterceptorExtensionStore extends Service {
       this.setupExtensionStatusListener()
     }
 
-    store.watch(STORE_NAMESPACE, SETTINGS_KEY).on(
-      "change", 
-      async ({ value }: { value: unknown }) => {
+    store
+      .watch(STORE_NAMESPACE, SETTINGS_KEY)
+      .on("change", async ({ value }: { value: unknown }) => {
         if (value) {
           const storedData = value as StoredData
           this.settings = storedData.settings
         }
-      }
-    )
+      })
   }
 
   public getExtensionVersion(): O.Option<ExtensionVersion> {
@@ -171,10 +170,7 @@ export class KernelInterceptorExtensionStore extends Service {
     return false
   }
   private async loadSettings(): Promise<void> {
-    const loadResult = await store.get(
-      STORE_NAMESPACE,
-      SETTINGS_KEY
-    )
+    const loadResult = await store.get(STORE_NAMESPACE, SETTINGS_KEY)
 
     if (E.isRight(loadResult) && loadResult.right) {
       const storedData = loadResult.right as StoredData

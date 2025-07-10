@@ -17,24 +17,19 @@ import Unfonts from "unplugin-fonts/vite"
 import legacy from "@vitejs/plugin-legacy"
 import ImportMetaEnv from "@import-meta-env/unplugin"
 
-const ENV = loadEnv("development", path.resolve(__dirname, "../../"), ["VITE_"])
+const ENV = loadEnv("development", path.resolve(__dirname, "./"), ["VITE_"])
 const isProduction = process.env.NODE_ENV === "production"
 
 export default defineConfig({
   envPrefix: process.env.HOPP_ALLOW_RUNTIME_ENV ? "VITE_BUILDTIME_" : "VITE_",
-  envDir: path.resolve(__dirname, "../../"),
+  envDir: path.resolve(__dirname, "./"),
   // TODO: Migrate @hoppscotch/data to full ESM
   define: {
     // For 'util' polyfill required by dep of '@apidevtools/swagger-parser'
     "process.env": {},
     "process.platform": '"browser"',
   },
-  server: {
-    port: 3200,
-    hmr: {
-      overlay: true
-    }
-  },
+
   preview: {
     port: 3200
   },

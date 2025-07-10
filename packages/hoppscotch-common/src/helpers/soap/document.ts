@@ -1,14 +1,11 @@
-import {
-  HoppSOAPRequest,
-  HoppSOAPResponse,
-} from "@hoppscotch/data"
+import { HoppSOAPRequest, HoppSOAPResponse } from "@hoppscotch/data"
 import { HoppInheritedProperty } from "../types/HoppInheritedProperties"
 import { HoppTestResult } from "../types/HoppTestResult"
 
 // SOAP option tabs - similar to REST but for SOAP-specific options
-export type SOAPOptionTabs = 
+export type SOAPOptionTabs =
   | "params"
-  | "headers" 
+  | "headers"
   | "authorization"
   | "preRequestScript"
   | "tests"

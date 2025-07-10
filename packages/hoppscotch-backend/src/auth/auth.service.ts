@@ -256,9 +256,8 @@ export class AuthService {
   async verifyMagicLinkTokens(
     magicLinkIDTokens: VerifyMagicDto,
   ): Promise<E.Right<AuthTokens> | E.Left<RESTError>> {
-    const passwordlessTokens = await this.validatePasswordlessTokens(
-      magicLinkIDTokens,
-    );
+    const passwordlessTokens =
+      await this.validatePasswordlessTokens(magicLinkIDTokens);
     if (O.isNone(passwordlessTokens))
       return E.left({
         message: INVALID_MAGIC_LINK_DATA,
@@ -340,9 +339,19 @@ export class AuthService {
         statusCode: HttpStatus.NOT_FOUND,
       });
 
+    // Fetch the user from Prisma to get the refreshToken
+    const dbUser = await this.prismaService.user.findUnique({
+      where: { uid: user.uid },
+    });
+    if (!dbUser || !dbUser.refreshToken)
+      return E.left({
+        message: USER_NOT_FOUND,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+
     // Check to see if the hashed refresh_token received from the client is the same as the refresh_token saved in the DB
     const isTokenMatched = await argon2.verify(
-      user.refreshToken,
+      dbUser.refreshToken,
       hashedRefreshToken,
     );
     if (!isTokenMatched)

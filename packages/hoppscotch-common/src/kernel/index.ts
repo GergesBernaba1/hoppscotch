@@ -1,4 +1,7 @@
-import { KernelAPI, getStoreImpl as kernelGetStoreImpl } from "@hoppscotch/kernel"
+import {
+  KernelAPI,
+  getStoreImpl as kernelGetStoreImpl,
+} from "@hoppscotch/kernel"
 
 export { Io } from "./io"
 export { Relay } from "./relay"

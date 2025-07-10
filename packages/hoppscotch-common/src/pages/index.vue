@@ -151,7 +151,12 @@ import { ResponseInspectorService } from "../services/inspection/inspectors/resp
 import { cloneDeep } from "lodash-es"
 import { RESTTabService } from "../services/tab/rest"
 import { HoppTab } from "../services/tab"
-import { HoppRequestDocument, HoppTabDocument, HoppSavedExampleDocument, HoppTestRunnerDocument } from "../helpers/rest/document"
+import {
+  HoppRequestDocument,
+  HoppTabDocument,
+  HoppSavedExampleDocument,
+  HoppTestRunnerDocument,
+} from "../helpers/rest/document"
 
 const savingRequest = ref(false)
 const confirmingCloseForTabID = ref<string | null>(null)
@@ -345,7 +350,11 @@ const onCloseConfirmSaveTab = () => {
 
 const onResolveConfirmSaveTab = () => {
   const currentTab = tabs.currentActiveTab.value
-  if (currentTab.document.type === 'request' && 'saveContext' in currentTab.document && currentTab.document.saveContext) {
+  if (
+    currentTab.document.type === "request" &&
+    "saveContext" in currentTab.document &&
+    currentTab.document.saveContext
+  ) {
     invokeAction("request-response.save")
 
     if (confirmingCloseForTabID.value) {

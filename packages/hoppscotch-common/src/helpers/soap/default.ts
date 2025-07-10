@@ -1,6 +1,10 @@
-import { HoppSOAPRequest, makeSOAPRequest, SOAP_VERSION_1_1 } from "@hoppscotch/data"
+import {
+  HoppSOAPRequest,
+  makeSOAPRequest,
+  SOAP_VERSION_1_1,
+} from "@hoppscotch/data"
 
-export const getDefaultSOAPRequest = (): HoppSOAPRequest => 
+export const getDefaultSOAPRequest = (): HoppSOAPRequest =>
   makeSOAPRequest({
     name: "Untitled",
     endpoint: "",

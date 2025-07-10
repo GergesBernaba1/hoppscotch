@@ -19,7 +19,6 @@ import { AuthUser } from 'src/types/AuthUser';
 import * as E from 'fp-ts/Either';
 import * as O from 'fp-ts/Option';
 import { PubSubService } from 'src/pubsub/pubsub.service';
-import { Prisma, UserCollection, ReqType as DBReqType } from '@prisma/client';
 import {
   UserCollection as UserCollectionModel,
   UserCollectionExportJSONData,
@@ -47,7 +46,7 @@ export class UserCollectionService {
    * @param userCollection database UserCollection
    * @returns UserCollection model
    */
-  private cast(collection: UserCollection) {
+  private cast(collection: any) {
     const data = transformCollectionData(collection.data);
 
     return <UserCollectionModel>{
@@ -429,7 +428,9 @@ export class UserCollectionService {
    * @param collectionID The Collection Id
    * @returns A Boolean of deletion status
    */
-  private async deleteCollectionData(collection: UserCollection) {
+  private async deleteCollectionData(
+    collection: UserCollectionModel & { userID?: string },
+  ) {
     // Get all child collections in collectionID
     const childCollectionList = await this.prisma.userCollection.findMany({
       where: {
@@ -454,7 +455,7 @@ export class UserCollectionService {
     // Update orderIndexes in userCollection table for user
     await this.updateOrderIndex(
       collection.parentID,
-      { gt: collection.orderIndex },
+      { gt: collection['orderIndex'] },
       { decrement: 1 },
     );
 
@@ -469,7 +470,7 @@ export class UserCollectionService {
       `user_coll/${deletedUserCollection.right.userUid}/deleted`,
       {
         id: deletedUserCollection.right.id,
-        type: ReqType[deletedUserCollection.right.type],
+        type: deletedUserCollection.right.type as ReqType,
       },
     );
 
@@ -492,7 +493,11 @@ export class UserCollectionService {
     if (collection.right.userUid !== userID) return E.left(USER_NOT_OWNER);
 
     // Delete all child collections and requests in the collection
-    const collectionData = await this.deleteCollectionData(collection.right);
+    const collectionData = await this.deleteCollectionData({
+      ...collection.right,
+      userID: collection.right.userUid,
+      type: collection.right.type as ReqType,
+    });
     if (E.isLeft(collectionData)) return E.left(collectionData.left);
 
     return E.right(true);
@@ -506,16 +511,14 @@ export class UserCollectionService {
    * @returns  If successful return an Either of true
    */
   private async changeParent(
-    collection: UserCollection,
+    collection: UserCollectionModel,
     parentCollectionID: string | null,
   ) {
     try {
       let collectionCount: number;
 
       if (!parentCollectionID)
-        collectionCount = await this.getRootCollectionsCount(
-          collection.userUid,
-        );
+        collectionCount = await this.getRootCollectionsCount(collection.userID);
       collectionCount = await this.getChildCollectionsCount(parentCollectionID);
 
       const updatedCollection = await this.prisma.userCollection.update({
@@ -544,8 +547,8 @@ export class UserCollectionService {
    * @returns An Option of boolean, is parent or not
    */
   private async isParent(
-    collection: UserCollection,
-    destCollection: UserCollection,
+    collection: UserCollectionModel,
+    destCollection: UserCollectionModel,
   ): Promise<O.Option<boolean>> {
     // Check if collection and destCollection are same
     if (collection === destCollection) {
@@ -564,7 +567,20 @@ export class UserCollectionService {
         return O.none;
       }
       // Call isParent again now with parent collection
-      return await this.isParent(collection, parentCollection.right);
+      return await this.isParent(
+        {
+          ...collection,
+          userID: (collection as any).userID ?? (collection as any).userUid,
+          type: collection.type as ReqType,
+        },
+        {
+          ...parentCollection.right,
+          userID:
+            (parentCollection.right as any).userID ??
+            (parentCollection.right as any).userUid,
+          type: parentCollection.right.type as ReqType,
+        },
+      );
     } else {
       return O.some(true);
     }
@@ -580,8 +596,8 @@ export class UserCollectionService {
    */
   private async updateOrderIndex(
     parentID: string,
-    orderIndexCondition: Prisma.IntFilter,
-    dataCondition: Prisma.IntFieldUpdateOperationsInput,
+    orderIndexCondition: { [key: string]: any },
+    dataCondition: { [key: string]: any },
   ) {
     const updatedUserCollection = await this.prisma.userCollection.updateMany({
       where: {
@@ -629,11 +645,14 @@ export class UserCollectionService {
       );
 
       // Change parent from child to root i.e child collection becomes a root collection
-      const updatedCollection = await this.changeParent(collection.right, null);
+      const updatedCollection = await this.changeParent(
+        this.cast(collection.right),
+        null,
+      );
       if (E.isLeft(updatedCollection)) return E.left(updatedCollection.left);
 
       this.pubsub.publish(
-        `user_coll/${collection.right.userUid}/moved`,
+        `user_coll/${this.cast(collection.right).userID}/moved`,
         this.cast(updatedCollection.right),
       );
 
@@ -662,8 +681,8 @@ export class UserCollectionService {
 
     // Check if collection is present on the parent tree for destCollection
     const checkIfParent = await this.isParent(
-      collection.right,
-      destCollection.right,
+      this.cast(collection.right),
+      this.cast(destCollection.right),
     );
     if (O.isNone(checkIfParent)) {
       return E.left(USER_COLL_IS_PARENT_COLL);
@@ -678,13 +697,13 @@ export class UserCollectionService {
 
     // Change parent from null to teamCollection i.e collection becomes a child collection
     const updatedCollection = await this.changeParent(
-      collection.right,
+      this.cast(collection.right),
       destCollection.right.id,
     );
     if (E.isLeft(updatedCollection)) return E.left(updatedCollection.left);
 
     this.pubsub.publish(
-      `user_coll/${collection.right.userUid}/moved`,
+      `user_coll/${this.cast(collection.right).userID}/moved`,
       this.cast(updatedCollection.right),
     );
 
@@ -731,7 +750,7 @@ export class UserCollectionService {
       // nextCollectionID == null i.e move collection to the end of the list
       try {
         await this.prisma.$transaction(async (tx) => {
-          // Step 1: Decrement orderIndex of all items that come after collection.orderIndex till end of list of items
+          // Step 1: Decrement orderIndex of all items that come after collection.orderIndex till end of list
           await tx.userCollection.updateMany({
             where: {
               parentID: collection.right.parentID,
@@ -885,10 +904,14 @@ export class UserCollectionService {
       name: collection.right.title,
       folders: childrenCollectionObjects,
       requests: requests.map((x) => {
+        let reqObj: Record<string, unknown> = {};
+        try {
+          reqObj = JSON.parse(x.request);
+        } catch {}
         return {
           id: x.id,
           name: x.title,
-          ...(x.request as Record<string, unknown>), // type casting x.request of type Prisma.JSONValue to an object to enable spread
+          ...reqObj,
         };
       }),
       data,
@@ -958,10 +981,14 @@ export class UserCollectionService {
           name: parentCollection.right.title,
           folders: collectionListObjects,
           requests: requests.map((x) => {
+            let reqObj: Record<string, unknown> = {};
+            try {
+              reqObj = JSON.parse(x.request);
+            } catch {}
             return {
               id: x.id,
               name: x.title,
-              ...(x.request as Record<string, unknown>), // type casting x.request of type Prisma.JSONValue to an object to enable spread
+              ...reqObj,
             };
           }),
           data: JSON.stringify(parentCollection.right.data),
@@ -989,8 +1016,8 @@ export class UserCollectionService {
     folder: CollectionFolder,
     userID: string,
     orderIndex: number,
-    reqType: DBReqType,
-  ): Prisma.UserCollectionCreateInput {
+    reqType: string, // changed from ReqType
+  ) {
     return {
       title: folder.name,
       user: {
@@ -1035,7 +1062,7 @@ export class UserCollectionService {
     jsonString: string,
     userID: string,
     destCollectionID: string | null,
-    reqType: DBReqType,
+    reqType: string,
     isCollectionDuplication = false,
   ) {
     // Check to see if jsonString is valid
@@ -1173,7 +1200,7 @@ export class UserCollectionService {
   async duplicateUserCollection(
     collectionID: string,
     userID: string,
-    reqType: DBReqType,
+    reqType: ReqType,
   ) {
     const collection = await this.getUserCollection(collectionID);
     if (E.isLeft(collection)) return E.left(USER_COLL_NOT_FOUND);
@@ -1237,7 +1264,7 @@ export class UserCollectionService {
     );
 
     const failedChildData = childCollectionDataList.find(E.isLeft);
-    if (failedChildData) return E.left(failedChildData.left);
+    if (failedChildData) return E.left(String(failedChildData.left));
 
     const childCollectionsJSONStr = JSON.stringify(
       (childCollectionDataList as E.Right<UserCollectionDuplicatedData>[]).map(

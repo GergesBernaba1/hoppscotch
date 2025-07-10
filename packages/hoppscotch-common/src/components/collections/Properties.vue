@@ -132,7 +132,7 @@ import { useToast } from "~/composables/toast"
 import { useI18n } from "~/composables/i18n"
 
 import { HoppInheritedProperty } from "~/helpers/types/HoppInheritedProperties"
-import { copyToClipboard } from "~/helpers/utils/clipboard" 
+import { copyToClipboard } from "~/helpers/utils/clipboard"
 import { PersistenceService } from "~/services/persistence/service"
 // Importing icons (these work with unplugin-icons)
 import IconCheck from "~icons/lucide/check"

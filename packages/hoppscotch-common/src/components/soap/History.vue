@@ -1,11 +1,15 @@
 <template>
   <div class="flex flex-col flex-1">
-    <div class="sticky z-10 flex items-center justify-between px-4 py-2 bg-primary top-upperRequestRect">
+    <div
+      class="sticky z-10 flex items-center justify-between px-4 py-2 bg-primary top-upperRequestRect"
+    >
       <div class="flex items-center">
         <span class="inline-flex items-center px-2 font-semibold">
           {{ t("soap.history") }}
         </span>
-        <span class="inline-flex items-center ltr:ml-2 rtl:mr-2 px-2 py-0.5 text-tiny font-semibold rounded badge">
+        <span
+          class="inline-flex items-center ltr:ml-2 rtl:mr-2 px-2 py-0.5 text-tiny font-semibold rounded badge"
+        >
           {{ history.length }}
         </span>
         <HoppButtonSecondary
@@ -13,34 +17,45 @@
           :icon="IconTrash"
           outline
           class="ml-2"
-          @click="() => confirmRemove = true"
+          @click="() => (confirmRemove = true)"
         />
       </div>
     </div>
 
-    <div class="flex flex-col flex-1 overflow-auto divide-y divide-dividerLight bg-primary">
+    <div
+      class="flex flex-col flex-1 overflow-auto divide-y divide-dividerLight bg-primary"
+    >
       <!-- Empty state for no history entries -->
-      <div v-if="history.length === 0" class="flex flex-col items-center justify-center flex-1 p-4">
-        <span class="mb-4 text-secondaryLight">{{ t('no_history') }}</span>
+      <div
+        v-if="history.length === 0"
+        class="flex flex-col items-center justify-center flex-1 p-4"
+      >
+        <span class="mb-4 text-secondaryLight">{{ t("no_history") }}</span>
         <HoppButtonPrimary
           label="New Request"
           outline
           @click="createNewRequest"
         />
       </div>
-      
-      <div
-        v-for="(entry, index) in history"
-        :key="index"
-        class="flex flex-col"
-      >
-        <div @click="selectEntry(index)" class="group cursor-pointer divide-y divide-dividerLight">
-          <div class="flex items-center px-4 py-2 bg-primary hover:bg-secondary">            <div class="flex flex-1">
-              <span class="rounded text-primary-contrast bg-accent px-2 py-1 text-tiny font-medium">POST</span>
+
+      <div v-for="(entry, index) in history" :key="index" class="flex flex-col">
+        <div
+          class="group cursor-pointer divide-y divide-dividerLight"
+          @click="selectEntry(index)"
+        >
+          <div
+            class="flex items-center px-4 py-2 bg-primary hover:bg-secondary"
+          >
+            <div class="flex flex-1">
+              <span
+                class="rounded text-primary-contrast bg-accent px-2 py-1 text-tiny font-medium"
+                >POST</span
+              >
               <span class="truncate px-4">{{ entry.request.endpoint }}</span>
             </div>
-            
-            <div class="flex">              <HoppButtonSecondary
+
+            <div class="flex">
+              <HoppButtonSecondary
                 v-tippy="{ content: entry.starred ? t('unstar') : t('star') }"
                 :icon="entry.starred ? IconStarOff : IconStar"
                 outline
@@ -56,15 +71,22 @@
               />
             </div>
           </div>
-          
-          <div class="flex items-center justify-between px-4 py-2 border-b border-dividerLight">
+
+          <div
+            class="flex items-center justify-between px-4 py-2 border-b border-dividerLight"
+          >
             <div class="flex space-x-2">
               <div class="flex items-center justify-center">
-                <span class="px-1 rounded" :class="getStatusClasses(entry.response?.statusCode)">
-                  {{ entry.response?.statusCode || 'N/A' }}
+                <span
+                  class="px-1 rounded"
+                  :class="getStatusClasses(entry.response?.statusCode)"
+                >
+                  {{ entry.response?.statusCode || "N/A" }}
                 </span>
               </div>
-              <div class="text-secondaryLight">{{ new Date(entry.timestamp).toLocaleString() }}</div>
+              <div class="text-secondaryLight">
+                {{ new Date(entry.timestamp).toLocaleString() }}
+              </div>
             </div>
           </div>
         </div>
@@ -84,10 +106,7 @@
           :label="t('cancel')"
           @click="confirmRemove = false"
         />
-        <HoppButtonPrimary
-          :label="t('clear')"
-          @click="clearHistory"
-        />
+        <HoppButtonPrimary :label="t('clear')" @click="clearHistory" />
       </template>
     </HoppSmartModal>
   </div>
@@ -100,7 +119,11 @@ import { useSOAPHistoryStore } from "../../newstore/SOAPHistory"
 import IconTrash from "~icons/lucide/trash"
 import IconStar from "~icons/lucide/star"
 import IconStarOff from "~icons/hopp/star-off"
-import { HoppButtonSecondary, HoppButtonPrimary, HoppSmartModal } from "@hoppscotch/ui"
+import {
+  HoppButtonSecondary,
+  HoppButtonPrimary,
+  HoppSmartModal,
+} from "@hoppscotch/ui"
 // @ts-expect-error - TypeScript has wrong type information, the actual JS exports useService as named export
 import { useService } from "dioc/vue"
 import { SOAPTabService } from "../../services/tab/soap"
@@ -128,7 +151,7 @@ function clearHistory() {
 function selectEntry(index) {
   const entry = history[index]
   if (!entry) return
-  
+
   const activeTabID = tabService.activeTabID?.value
   if (activeTabID) {
     tabService.updateRequest(activeTabID, entry.request)
@@ -139,14 +162,13 @@ function selectEntry(index) {
 
 function getStatusClasses(statusCode) {
   if (!statusCode) return ""
-  
+
   if (statusCode >= 200 && statusCode < 300) {
     return "text-green-500"
   } else if (statusCode >= 400) {
     return "text-red-500"
-  } else {
-    return "text-yellow-500"
   }
+  return "text-yellow-500"
 }
 
 function createNewRequest() {
@@ -172,19 +194,19 @@ function createNewRequest() {
 </soap:Envelope>`,
       auth: {
         authType: "none",
-        authActive: true
+        authActive: true,
       },
       preRequestScript: "",
       testScript: "",
-      attachments: []
+      attachments: [],
     },
     isDirty: false,
-    optionTabPreference: "params"
+    optionTabPreference: "params",
   })
 }
 </script>
 
 <!-- Export the component as default -->
 <script lang="js">
-export default { name: 'SOAPHistory' }
+export default { name: "SOAPHistory" }
 </script>

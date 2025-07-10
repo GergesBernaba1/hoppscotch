@@ -1,7 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { TeamMember, TeamMemberRole, Team } from './team.model';
 import { PrismaService } from '../prisma/prisma.service';
-import { TeamMember as DbTeamMember } from '@prisma/client';
 import { UserService } from '../user/user.service';
 import { UserDataHandler } from 'src/user/user.data.handler';
 import {
@@ -428,7 +427,7 @@ export class TeamService implements UserDataHandler, OnModuleInit {
 
   deleteUserFromAllTeams(uid: string) {
     return pipe(
-      () =>
+      (): Promise<any[]> =>
         this.prisma.teamMember.findMany({
           where: {
             userUid: uid,
@@ -486,7 +485,7 @@ export class TeamService implements UserDataHandler, OnModuleInit {
     teamID: string,
     cursor: string | null,
   ): Promise<TeamMember[]> {
-    let teamMembers: DbTeamMember[];
+    let teamMembers: any[];
 
     if (!cursor) {
       teamMembers = await this.prisma.teamMember.findMany({

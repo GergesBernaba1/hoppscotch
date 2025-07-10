@@ -22,18 +22,25 @@ export class RTJwtStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
     private usersService: UserService,
     private configService: ConfigService,
   ) {
+    const jwtSecret = configService.get('JWT_SECRET');
+    if (!jwtSecret) {
+      throw new Error(
+        'JWT_SECRET environment variable is required but not set',
+      );
+    }
+
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => {
           const RTCookie = request.cookies['refresh_token'];
           if (!RTCookie) {
-            console.error("`refresh_token` not found")
+            console.error('`refresh_token` not found');
             throw new ForbiddenException(COOKIES_NOT_FOUND);
           }
           return RTCookie;
         },
       ]),
-      secretOrKey: configService.get('JWT_SECRET'),
+      secretOrKey: jwtSecret,
     });
   }
 

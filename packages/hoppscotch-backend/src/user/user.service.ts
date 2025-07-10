@@ -18,7 +18,7 @@ import { USER_UPDATE_FAILED } from 'src/errors';
 import { PubSubService } from 'src/pubsub/pubsub.service';
 import { encrypt, stringToJson, taskEitherValidateArraySeq } from 'src/utils';
 import { UserDataHandler } from './user.data.handler';
-import { User as DbUser } from '@prisma/client';
+// import { User as DbUser } from '@prisma/client';
 import { OffsetPaginationArgs } from 'src/types/input-types.args';
 import { GetUserWorkspacesResponse } from 'src/infra-token/request-response.dto';
 import { TeamMemberRole } from 'src/team/team.model';
@@ -42,7 +42,7 @@ export class UserService {
    * @param dbUser Prisma User object
    * @returns  User object
    */
-  convertDbUserToUser(dbUser: DbUser): User {
+  convertDbUserToUser(dbUser: any): User {
     const dbCurrentRESTSession = dbUser.currentRESTSession;
     const dbCurrentGQLSession = dbUser.currentGQLSession;
 
@@ -68,7 +68,7 @@ export class UserService {
       where: {
         email: {
           equals: email,
-          mode: 'insensitive',
+          // //   mode: 'insensitive',
         },
       },
     });
@@ -399,13 +399,13 @@ export class UserService {
               {
                 displayName: {
                   contains: searchString,
-                  mode: 'insensitive',
+                  //   mode: 'insensitive',
                 },
               },
               {
                 email: {
                   contains: searchString,
-                  mode: 'insensitive',
+                  //   mode: 'insensitive',
                 },
               },
             ],

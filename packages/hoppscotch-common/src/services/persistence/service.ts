@@ -39,8 +39,8 @@ export class PersistenceService extends Service {
     } catch (e) {
       console.error("Store initialization error:", e)
       return E.left({
-        kind: 'storage',
-        message: e instanceof Error ? e.message : 'Unknown error',
+        kind: "storage",
+        message: e instanceof Error ? e.message : "Unknown error",
         cause: e,
       })
     }
@@ -53,17 +53,17 @@ export class PersistenceService extends Service {
     try {
       // Initialize the store with default values
       await Promise.all([
-        this.set('settings', {
-          theme: 'system',
-          language: 'en',
+        this.set("settings", {
+          theme: "system",
+          language: "en",
           fontSize: 14,
         }),
-        this.set('restCollections', []),
-        this.set('gqlCollections', []),
-        this.set('environments', []),
-        this.set('restHistory', []),
-        this.set('gqlHistory', []),
-        this.set('soapHistory', []),
+        this.set("restCollections", []),
+        this.set("gqlCollections", []),
+        this.set("environments", []),
+        this.set("restHistory", []),
+        this.set("gqlHistory", []),
+        this.set("soapHistory", []),
       ])
     } catch (e) {
       console.error("Failed to setup initial persistence:", e)
@@ -128,12 +128,17 @@ export class PersistenceService extends Service {
     return await store.remove(STORE_NAMESPACE, key)
   }
 
-  public async getLocalConfig<T>(key: (typeof STORE_KEYS)[keyof typeof STORE_KEYS]): Promise<T | null> {
+  public async getLocalConfig<T>(
+    key: (typeof STORE_KEYS)[keyof typeof STORE_KEYS]
+  ): Promise<T | null> {
     const result = await this.get(key)
     return E.isRight(result) ? (result.right as T) : null
   }
 
-  public async setLocalConfig<T>(key: (typeof STORE_KEYS)[keyof typeof STORE_KEYS], value: T): Promise<void> {
+  public async setLocalConfig<T>(
+    key: (typeof STORE_KEYS)[keyof typeof STORE_KEYS],
+    value: T
+  ): Promise<void> {
     await this.set(key, value)
   }
 }

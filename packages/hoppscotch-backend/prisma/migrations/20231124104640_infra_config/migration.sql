@@ -1,11 +1,11 @@
 -- CreateTable
 CREATE TABLE "InfraConfig" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "value" TEXT,
-    "active" BOOLEAN NOT NULL DEFAULT true,
-    "createdOn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedOn" TIMESTAMP(3) NOT NULL,
+    "id" NVARCHAR(255) NOT NULL,
+    "name" NVARCHAR(255) NOT NULL,
+    "value" NVARCHAR(MAX),
+    "active" BIT NOT NULL DEFAULT 1,
+    "createdOn" DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    "updatedOn" DATETIME2 NOT NULL,
 
     CONSTRAINT "InfraConfig_pkey" PRIMARY KEY ("id")
 );

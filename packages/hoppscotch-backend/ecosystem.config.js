@@ -24,11 +24,11 @@ module.exports = {
       ALLOW_SECURE_COOKIES: false, // Set to true if using HTTPS
       
       // Data Encryption
-      DATA_ENCRYPTION_KEY: 'hoppscotch-data-encryption-key-32',
+      DATA_ENCRYPTION_KEY: 'hoppscotch-data-encryption-key-32-chars',
       
       // Domain Configuration for your IIS deployment
       REDIRECT_URL: 'http://hoppscotch.expertapps.com.sa',
-      WHITELISTED_ORIGINS: 'http://hoppscotch.expertapps.com.sa,http://localhost:3000',
+      WHITELISTED_ORIGINS: 'http://hoppscotch.expertapps.com.sa,http://localhost:3000,http://localhost:3200,http://localhost:3170,http://localhost:5173',
       VITE_ALLOWED_AUTH_PROVIDERS: 'EMAIL',
       
       // Mailer Configuration (disabled for basic setup)

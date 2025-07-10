@@ -27,7 +27,13 @@ export class UserResolver {
   })
   @UseGuards(GqlAuthGuard)
   me(@GqlUser() user: AuthUser) {
-    return this.userService.convertDbUserToUser(user);
+    // AuthUser is not a DbUser, so fetch the full DbUser from the database
+    return this.userService.findUserById(user.uid).then((result) => {
+      if (result._tag === "None") throwErr("User not found");
+      // result.value is AuthUser, but you may need to fetch the actual DbUser from Prisma
+      // If AuthUser is compatible with DbUser, you can use it directly; otherwise, fetch from DB
+      return this.userService.convertDbUserToUser(result.value as any);
+    });
   }
 
   /* Mutations */

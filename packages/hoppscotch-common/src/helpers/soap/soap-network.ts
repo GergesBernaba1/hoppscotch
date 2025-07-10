@@ -10,9 +10,11 @@ import { getService } from "~/modules/dioc"
 import { RESTRequest } from "~/helpers/kernel/rest/request"
 import { RESTResponse } from "~/helpers/kernel/rest/response"
 import { RelayResponse } from "@hoppscotch/kernel/src/relay/v/1"
-import { HoppRESTResponse } from "~/helpers/types/HoppRESTResponse"
+import { InferredEntity } from "verzod"
+import type { HoppSOAPRequest } from "@hoppscotch/data/src/soap/index"
+import type { HoppSOAPResponse } from "~/helpers/types/HoppSOAPResponse"
 import { createMTOMMessage } from "./soap-attachments"
-import { HoppSOAPRequest, HoppSOAPResponse } from "@hoppscotch/data"
+import { HoppRESTResponse } from "~/helpers/types/HoppRESTResponse"
 
 // Helper to convert File | null to ArrayBuffer | null (async)
 async function fileToArrayBuffer(
@@ -287,7 +289,7 @@ function processSOAPResponse(
         headers: convertHeaders(res.headers),
         body: enhancedBody,
         error: new Error(faultMessage),
-      } as HoppSOAPResponse & {
+      } as unknown as HoppSOAPResponse & {
         meta: {
           isSoapFault: true
           faultCode?: string
@@ -434,12 +436,14 @@ function processSOAPResponse(
               extractedContent = jsonResponse.contents
               console.log("Extracted 'contents' from proxy JSON wrapper")
             }
+            if (
               jsonResponse.data &&
               typeof jsonResponse.data === "string"
             ) {
               extractedContent = jsonResponse.data
               console.log("Extracted 'data' from proxy JSON wrapper")
             }
+            if (
               jsonResponse.data &&
               typeof jsonResponse.data === "object"
             ) {
@@ -1050,7 +1054,7 @@ export function createSOAPNetworkRequestStream(
               // This is an object with error details
               const errorObj = errorValue as unknown as {
                 error: { message?: string }
-                humanMessage?: { heading?: Function; description?: Function }
+                humanMessage?: { heading?: () => string; description?: () => string }
               }
 
               enhancedMessage =

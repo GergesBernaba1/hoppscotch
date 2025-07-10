@@ -18,15 +18,20 @@ import { USER_UPDATE_FAILED } from 'src/errors';
 import { PubSubService } from 'src/pubsub/pubsub.service';
 import { encrypt, stringToJson, taskEitherValidateArraySeq } from 'src/utils';
 import { UserDataHandler } from './user.data.handler';
-// import { User as DbUser } from '@prisma/client';
+import { User as DbUser } from '@prisma/client';
 import { OffsetPaginationArgs } from 'src/types/input-types.args';
 import { GetUserWorkspacesResponse } from 'src/infra-token/request-response.dto';
-import { TeamMemberRole } from 'src/team/team.model';
+// Define TeamAccessRole enum locally if not exported from team.model
+export enum TeamAccessRole {
+  OWNER = 'OWNER',
+  EDITOR = 'EDITOR',
+  VIEWER = 'VIEWER',
+}
 
 @Injectable()
 export class UserService {
   constructor(
-    private prisma: PrismaService,
+    private readonly prisma: PrismaService,
     private readonly pubsub: PubSubService,
   ) {}
 
@@ -42,7 +47,7 @@ export class UserService {
    * @param dbUser Prisma User object
    * @returns  User object
    */
-  convertDbUserToUser(dbUser: any): User {
+  convertDbUserToUser(dbUser: DbUser): User {
     const dbCurrentRESTSession = dbUser.currentRESTSession;
     const dbCurrentGQLSession = dbUser.currentGQLSession;
 
@@ -68,7 +73,6 @@ export class UserService {
       where: {
         email: {
           equals: email,
-          // //   mode: 'insensitive',
         },
       },
     });
@@ -143,7 +147,7 @@ export class UserService {
     const createdUser = await this.prisma.user.create({
       data: {
         email: email,
-        providerAccounts: {
+        Account: {
           create: {
             provider: 'magic',
             providerAccountId: email,
@@ -177,7 +181,7 @@ export class UserService {
         email: profile.emails[0].value,
         photoURL: userPhotoURL,
         lastLoggedOn: new Date(),
-        providerAccounts: {
+        Account: {
           create: {
             provider: profile.provider,
             providerAccountId: profile.id,
@@ -212,7 +216,7 @@ export class UserService {
         providerAccountId: profile.id,
         providerRefreshToken: refreshToken ? encrypt(refreshToken) : null,
         providerAccessToken: accessToken ? encrypt(accessToken) : null,
-        user: {
+        User: {
           connect: {
             uid: user.uid,
           },
@@ -398,14 +402,13 @@ export class UserService {
             OR: [
               {
                 displayName: {
-                  contains: searchString,
-                  //   mode: 'insensitive',
-                },
+                  contains: searchString            
+                    },
               },
               {
-                email: {
+                email:
+                 {
                   contains: searchString,
-                  //   mode: 'insensitive',
                 },
               },
             ],
@@ -626,13 +629,13 @@ export class UserService {
     const workspaces: GetUserWorkspacesResponse[] = [];
     team.forEach((t) => {
       const ownerCount = t.members.filter(
-        (m) => m.role === TeamMemberRole.OWNER,
+        (m) => m.role === TeamAccessRole.OWNER,
       ).length;
       const editorCount = t.members.filter(
-        (m) => m.role === TeamMemberRole.EDITOR,
+        (m) => m.role === TeamAccessRole.EDITOR,
       ).length;
       const viewerCount = t.members.filter(
-        (m) => m.role === TeamMemberRole.VIEWER,
+        (m) => m.role === TeamAccessRole.VIEWER,
       ).length;
       const memberCount = t.members.length;
 

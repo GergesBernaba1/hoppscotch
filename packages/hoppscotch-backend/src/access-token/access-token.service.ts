@@ -156,7 +156,7 @@ export class AccessTokenService {
     try {
       const userPAT = await this.prisma.personalAccessToken.findUniqueOrThrow({
         where: { token: extractedToken },
-        include: { user: true },
+        //include: { user: true },
       });
       return E.right(userPAT);
     } catch {

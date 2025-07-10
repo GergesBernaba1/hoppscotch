@@ -1,13 +1,12 @@
-
 -- CreateTable
 CREATE TABLE "PersonalAccessToken" (
-    "id" TEXT NOT NULL,
-    "userUid" TEXT NOT NULL,
-    "label" TEXT NOT NULL,
-    "token" TEXT NOT NULL,
-    "expiresOn" TIMESTAMP(3),
-    "createdOn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedOn" TIMESTAMP(3) NOT NULL,
+    "id" NVARCHAR(255) NOT NULL,
+    "userUid" NVARCHAR(255) NOT NULL,
+    "label" NVARCHAR(255) NOT NULL,
+    "token" NVARCHAR(255) NOT NULL,
+    "expiresOn" DATETIME2,
+    "createdOn" DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    "updatedOn" DATETIME2 NOT NULL,
 
     CONSTRAINT "PersonalAccessToken_pkey" PRIMARY KEY ("id")
 );

@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE "TeamCollection" ADD COLUMN     "data" JSONB;
+ALTER TABLE "TeamCollection" ADD "data" NVARCHAR(MAX);
 
 -- AlterTable
-ALTER TABLE "UserCollection" ADD COLUMN     "data" JSONB;
+ALTER TABLE "UserCollection" ADD "data" NVARCHAR(MAX);

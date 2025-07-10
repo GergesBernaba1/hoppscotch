@@ -81,10 +81,8 @@ export class AuthService {
       const tokens =
         await this.prismaService.verificationToken.findUniqueOrThrow({
           where: {
-            passwordless_deviceIdentifier_tokens: {
-              deviceIdentifier: magicLinkTokens.deviceIdentifier,
-              token: magicLinkTokens.token,
-            },
+            deviceIdentifier: magicLinkTokens.deviceIdentifier,
+            token: magicLinkTokens.token,
           },
         });
       return O.some(tokens);
@@ -162,17 +160,19 @@ export class AuthService {
       const deletedPasswordlessToken =
         await this.prismaService.verificationToken.delete({
           where: {
-            passwordless_deviceIdentifier_tokens: {
-              deviceIdentifier: passwordlessTokens.deviceIdentifier,
-              token: passwordlessTokens.token,
-            },
+            deviceIdentifier: passwordlessTokens.deviceIdentifier,
+            token: passwordlessTokens.token,
           },
         });
       return E.right(deletedPasswordlessToken);
     } catch (error) {
-      return E.left(VERIFICATION_TOKEN_DATA_NOT_FOUND);
+      return E.left(<RESTError>{
+        message: error.message,
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      });
     }
-  }
+  
+}
 
   /**
    * Verify if Provider account exists for User
@@ -307,7 +307,9 @@ export class AuthService {
     );
     if (E.isLeft(tokens))
       return E.left({
-        message: tokens.left.message,
+        message: typeof tokens.left.message === 'string'
+          ? tokens.left.message
+          : 'Unknown error',
         statusCode: tokens.left.statusCode,
       });
 
@@ -315,7 +317,9 @@ export class AuthService {
       await this.deleteMagicLinkVerificationTokens(passwordlessTokens.value);
     if (E.isLeft(deletedPasswordlessToken))
       return E.left({
-        message: deletedPasswordlessToken.left,
+        message: typeof deletedPasswordlessToken.left === 'object' && 'message' in deletedPasswordlessToken.left
+          ? deletedPasswordlessToken.left.message
+          : String(deletedPasswordlessToken.left),
         statusCode: HttpStatus.NOT_FOUND,
       });
 
@@ -364,7 +368,9 @@ export class AuthService {
     const generatedAuthTokens = await this.generateAuthTokens(user.uid);
     if (E.isLeft(generatedAuthTokens))
       return E.left({
-        message: generatedAuthTokens.left.message,
+        message: typeof generatedAuthTokens.left.message === 'string'
+          ? generatedAuthTokens.left.message
+          : 'Unknown error',
         statusCode: generatedAuthTokens.left.statusCode,
       });
 

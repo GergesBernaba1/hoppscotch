@@ -1,234 +1,234 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
 datasource db {
   provider = "sqlserver"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x"]
-}
-
 model Team {
-  id              String            @id @default(cuid())
-  name            String
-  members         TeamMember[]
-  TeamInvitation  TeamInvitation[]
+  id              String            @id @default(cuid()) @db.NVarChar(255)
+  name            String            @db.NVarChar(255)
   TeamCollection  TeamCollection[]
-  TeamRequest     TeamRequest[]
   TeamEnvironment TeamEnvironment[]
+  TeamInvitation  TeamInvitation[]
+  members         TeamMember[]
+  TeamRequest     TeamRequest[]
 }
 
 model TeamMember {
-  id      String         @id @default(uuid()) // Membership ID
-  role    String // was TeamMemberRole
-  userUid String
-  teamID  String
-  team    Team           @relation(fields: [teamID], references: [id], onDelete: Cascade)
+  id      String @id @default(uuid()) @db.NVarChar(255)
+  role    String @db.NVarChar(50)
+  userUid String @db.NVarChar(255)
+  teamID  String @db.NVarChar(255)
+  team    Team   @relation(fields: [teamID], references: [id], onDelete: Cascade)
 
   @@unique([teamID, userUid])
 }
 
 model TeamInvitation {
-  id           String         @id @default(cuid())
-  teamID       String
-  team         Team           @relation(fields: [teamID], references: [id], onDelete: Cascade)
-  creatorUid   String
-  inviteeEmail String
-  inviteeRole  String // was TeamMemberRole
+  id           String @id @default(cuid()) @db.NVarChar(255)
+  teamID       String @db.NVarChar(255)
+  creatorUid   String @db.NVarChar(255)
+  inviteeEmail String @db.NVarChar(255)
+  inviteeRole  String @db.NVarChar(50)
+  team         Team   @relation(fields: [teamID], references: [id], onDelete: Cascade)
 
   @@unique([teamID, inviteeEmail])
   @@index([teamID])
 }
 
 model TeamCollection {
-  id         String           @id @default(cuid())
-  parentID   String?
-  data       String? // was Json?
+  id         String           @id @default(cuid()) @db.NVarChar(255)
+  parentID   String?          @db.NVarChar(255)
+  teamID     String           @db.NVarChar(255)
+  title      String           @db.NVarChar(255)
+  orderIndex Int
+  createdOn  DateTime         @default(dbgenerated("sysutcdatetime()"), map: "DF__TeamColle__creat__4262CC11")
+  updatedOn  DateTime         @updatedAt
+  data       String?          @db.NVarChar(Max)
   parent     TeamCollection?  @relation("TeamCollectionChildParent", fields: [parentID], references: [id], onDelete: NoAction, onUpdate: NoAction)
   children   TeamCollection[] @relation("TeamCollectionChildParent")
-  requests   TeamRequest[]
-  teamID     String
   team       Team             @relation(fields: [teamID], references: [id], onDelete: Cascade)
-  title      String
-  orderIndex Int
-  createdOn  DateTime         @default(now())
-  updatedOn  DateTime         @updatedAt
+  requests   TeamRequest[]
 }
 
 model TeamRequest {
-  id           String         @id @default(cuid())
-  collectionID String
-  collection   TeamCollection @relation(fields: [collectionID], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  teamID       String
-  team         Team           @relation(fields: [teamID], references: [id], onDelete: Cascade)
-  title        String
-  request      String
+  id           String         @id @default(cuid()) @db.NVarChar(255)
+  collectionID String         @db.NVarChar(255)
+  teamID       String         @db.NVarChar(255)
+  title        String         @db.NVarChar(255)
+  request      String         @db.NVarChar(Max)
   orderIndex   Int
-  createdOn    DateTime       @default(now())
+  createdOn    DateTime       @default(dbgenerated("sysutcdatetime()"), map: "DF__TeamReque__creat__453F38BC")
   updatedOn    DateTime       @updatedAt
+  collection   TeamCollection @relation(fields: [collectionID], references: [id], onUpdate: NoAction)
+  team         Team           @relation(fields: [teamID], references: [id], onUpdate: NoAction)
 }
 
 model Shortcode {
-  id              String   @id @unique
-  request         String
-  embedProperties String?
-  creatorUid      String?
+  id              String   @id @unique @db.NVarChar(255)
+  request         String   @db.NVarChar(Max)
+  creatorUid      String?  @db.NVarChar(255)
+  createdOn       DateTime @default(dbgenerated("sysutcdatetime()"), map: "DF__Shortcode__creat__481BA567")
+  embedProperties String?  @db.NVarChar(Max)
+  updatedOn       DateTime @default(dbgenerated("sysutcdatetime()"), map: "DF__Shortcode__updat__711DBAFA") @updatedAt
   User            User?    @relation(fields: [creatorUid], references: [uid])
-  createdOn       DateTime @default(now())
-  updatedOn       DateTime @updatedAt
 
-  @@unique(fields: [id, creatorUid], name: "creator_uid_shortcode_unique")
+  @@unique([id, creatorUid], name: "creator_uid_shortcode_unique")
 }
 
 model TeamEnvironment {
-  id        String @id @default(cuid())
-  teamID    String
+  id        String @id @default(cuid()) @db.NVarChar(255)
+  teamID    String @db.NVarChar(255)
+  name      String @db.NVarChar(255)
+  variables String @db.NVarChar(Max)
   team      Team   @relation(fields: [teamID], references: [id], onDelete: Cascade)
-  name      String
-  variables String
 }
 
 model User {
-  uid                  String                @id @default(cuid())
-  displayName          String?
-  email                String?               @unique
-  photoURL             String?
-  isAdmin              Boolean               @default(false)
-  refreshToken         String?
-  providerAccounts     Account[]
-  VerificationToken    VerificationToken[]
-  settings             UserSettings?
-  UserHistory          UserHistory[]
-  UserEnvironments     UserEnvironment[]
-  userCollections      UserCollection[]
-  userRequests         UserRequest[]
-  currentRESTSession   String?
-  currentGQLSession    String?
-  lastLoggedOn         DateTime?
-  lastActiveOn         DateTime?
-  createdOn            DateTime              @default(now())
-  invitedUsers         InvitedUsers[]
-  shortcodes           Shortcode[]
-  personalAccessTokens PersonalAccessToken[]
+  uid                 String                @id @default(cuid()) @db.NVarChar(255)
+  displayName         String?               @db.NVarChar(255)
+  email               String?               @unique @db.NVarChar(255)
+  photoURL            String?               @db.NVarChar(255)
+  isAdmin             Boolean               @default(false, map: "DF__User__isAdmin__4CE05A84")
+  refreshToken        String?               @db.NVarChar(255)
+  currentRESTSession  String?               @db.NVarChar(Max)
+  currentGQLSession   String?               @db.NVarChar(Max)
+  createdOn           DateTime              @default(dbgenerated("sysutcdatetime()"), map: "DF__User__createdOn__4DD47EBD")
+  lastLoggedOn        DateTime?
+  lastActiveOn        DateTime?
+  Account             Account[]
+  InvitedUsers        InvitedUsers[]
+  PersonalAccessToken PersonalAccessToken[]
+  shortcodes          Shortcode[]
+  userCollections     UserCollection[]
+  UserEnvironments    UserEnvironment[]
+  UserHistory         UserHistory[]
+  userRequests        UserRequest[]
+  settings            UserSettings?
+  VerificationToken   VerificationToken[]
 }
 
 model Account {
-  id                   String   @id @default(cuid())
-  userId               String
-  user                 User     @relation(fields: [userId], references: [uid], onDelete: Cascade)
-  provider             String
-  providerAccountId    String
-  providerRefreshToken String?
-  providerAccessToken  String?
-  providerScope        String?
-  loggedIn             DateTime @default(now())
+  id                   String   @id @default(cuid()) @db.NVarChar(255)
+  userId               String   @db.NVarChar(255)
+  provider             String   @db.NVarChar(255)
+  providerAccountId    String   @db.NVarChar(255)
+  providerRefreshToken String?  @db.NVarChar(255)
+  providerAccessToken  String?  @db.NVarChar(255)
+  providerScope        String?  @db.NVarChar(255)
+  loggedIn             DateTime @default(dbgenerated("sysutcdatetime()"), map: "DF__Account__loggedI__50B0EB68")
+  User                 User     @relation(fields: [userId], references: [uid], onDelete: Cascade)
 
-  @@unique(fields: [provider, providerAccountId], name: "verifyProviderAccount")
+  @@unique([provider, providerAccountId], name: "verifyProviderAccount")
 }
 
 model VerificationToken {
-  deviceIdentifier String
-  token            String   @unique @default(cuid())
-  userUid          String
-  user             User     @relation(fields: [userUid], references: [uid], onDelete: Cascade)
+  deviceIdentifier String   @db.NVarChar(255)
+  token            String   @unique @default(cuid()) @db.NVarChar(255)
+  userUid          String   @db.NVarChar(255)
   expiresOn        DateTime
+  user             User     @relation(fields: [userUid], references: [uid], onDelete: Cascade)
 
-  @@unique(fields: [deviceIdentifier, token], name: "passwordless_deviceIdentifier_tokens")
+  @@unique([deviceIdentifier, token])
 }
 
 model UserSettings {
-  id         String   @id @default(cuid())
-  userUid    String   @unique
-  user       User     @relation(fields: [userUid], references: [uid], onDelete: Cascade)
-  properties String
+  id         String   @id @default(cuid()) @db.NVarChar(255)
+  userUid    String   @unique @db.NVarChar(255)
+  properties String   @db.NVarChar(Max)
   updatedOn  DateTime @updatedAt
+  user       User     @relation(fields: [userUid], references: [uid], onDelete: Cascade)
 }
 
 model UserHistory {
-  id               String   @id @default(cuid())
-  userUid          String
-  user             User     @relation(fields: [userUid], references: [uid], onDelete: Cascade)
-  reqType          String // was ReqType
-  request          String
-  responseMetadata String
+  id               String   @id @default(cuid()) @db.NVarChar(255)
+  userUid          String   @db.NVarChar(255)
+  reqType          String   @db.NVarChar(50)
+  request          String   @db.NVarChar(Max)
+  responseMetadata String   @db.NVarChar(Max)
   isStarred        Boolean
-  executedOn       DateTime @default(now())
+  executedOn       DateTime @default(dbgenerated("sysutcdatetime()"), map: "DF__UserHisto__execu__5669C4BE")
+  user             User     @relation(fields: [userUid], references: [uid], onDelete: Cascade)
 }
 
 model UserEnvironment {
-  id        String  @id @default(cuid())
-  userUid   String
-  user      User    @relation(fields: [userUid], references: [uid], onDelete: Cascade)
-  name      String?
-  variables String // was Json
+  id        String  @id @default(cuid()) @db.NVarChar(255)
+  userUid   String  @db.NVarChar(255)
+  name      String? @db.NVarChar(255)
+  variables String  @db.NVarChar(Max)
   isGlobal  Boolean
-}
-
-model InvitedUsers {
-  adminUid     String
-  user         User     @relation(fields: [adminUid], references: [uid], onDelete: Cascade)
-  adminEmail   String
-  inviteeEmail String   @unique
-  invitedOn    DateTime @default(now())
+  user      User    @relation(fields: [userUid], references: [uid], onDelete: Cascade)
 }
 
 model UserRequest {
-  id             String         @id @default(cuid())
-  userCollection UserCollection @relation(fields: [collectionID], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  collectionID   String
-  userUid        String
-  user           User           @relation(fields: [userUid], references: [uid], onDelete: Cascade)
-  title          String
-  request        String
-  type           String // was ReqType
+  id             String         @id @default(cuid()) @db.NVarChar(255)
+  collectionID   String         @db.NVarChar(255)
+  userUid        String         @db.NVarChar(255)
+  title          String         @db.NVarChar(255)
+  request        String         @db.NVarChar(Max)
+  type           String         @db.NVarChar(50)
   orderIndex     Int
-  createdOn      DateTime       @default(now())
+  createdOn      DateTime       @default(dbgenerated("sysutcdatetime()"), map: "DF__UserReque__creat__5D16C24D")
   updatedOn      DateTime       @updatedAt
+  userCollection UserCollection @relation(fields: [collectionID], references: [id], onUpdate: NoAction)
+  user           User           @relation(fields: [userUid], references: [uid], onDelete: Cascade)
 }
 
 model UserCollection {
-  id         String           @id @default(cuid())
-  parentID   String?
+  id         String           @id @default(cuid()) @db.NVarChar(255)
+  parentID   String?          @db.NVarChar(255)
+  userUid    String           @db.NVarChar(255)
+  title      String           @db.NVarChar(255)
+  orderIndex Int
+  type       String           @db.NVarChar(50)
+  createdOn  DateTime         @default(dbgenerated("sysutcdatetime()"), map: "DF__UserColle__creat__5FF32EF8")
+  updatedOn  DateTime         @updatedAt
+  data       String?          @db.NVarChar(Max)
   parent     UserCollection?  @relation("ParentUserCollection", fields: [parentID], references: [id], onDelete: NoAction, onUpdate: NoAction)
   children   UserCollection[] @relation("ParentUserCollection")
-  requests   UserRequest[]
-  userUid    String
   user       User             @relation(fields: [userUid], references: [uid], onDelete: Cascade)
-  title      String
-  data       String? // was Json?
-  orderIndex Int
-  type       String // was ReqType
-  createdOn  DateTime         @default(now())
-  updatedOn  DateTime         @updatedAt
+  requests   UserRequest[]
 }
 
 model InfraConfig {
-  id                     String   @id @default(cuid())
-  name                   String   @unique
-  value                  String?
-  lastSyncedEnvFileValue String?
-  isEncrypted            Boolean  @default(false) // Use case: Let's say, Admin wants to store a Secret Key, but doesn't want to store it in plain text in `value` column
-  createdOn              DateTime @default(now())
+  id                     String   @id @default(cuid()) @db.NVarChar(255)
+  name                   String   @unique @db.NVarChar(255)
+  value                  String?  @db.NVarChar(Max)
+  createdOn              DateTime @default(dbgenerated("sysutcdatetime()"), map: "DF__InfraConf__creat__75E27017")
   updatedOn              DateTime @updatedAt
+  isEncrypted            Boolean  @default(false, map: "DF__InfraConf__isEnc__7AA72534")
+  lastSyncedEnvFileValue String?  @db.NVarChar(Max)
 }
 
 model PersonalAccessToken {
-  id        String    @id @default(cuid())
-  userUid   String
-  user      User      @relation(fields: [userUid], references: [uid], onDelete: Cascade)
-  label     String
-  token     String    @unique @default(uuid())
+  id        String    @id @default(cuid()) @db.NVarChar(255)
+  userUid   String    @db.NVarChar(255)
+  label     String    @db.NVarChar(255)
+  token     String    @unique @default(uuid()) @db.NVarChar(255)
   expiresOn DateTime?
-  createdOn DateTime  @default(now())
+  createdOn DateTime  @default(dbgenerated("sysutcdatetime()"), map: "DF__PersonalA__creat__78BEDCC2")
   updatedOn DateTime  @updatedAt
+  User      User      @relation(fields: [userUid], references: [uid], onDelete: Cascade)
 }
 
 model InfraToken {
-  id         String    @id @default(cuid())
-  creatorUid String
-  label      String
-  token      String    @unique @default(uuid())
+  id         String    @id @default(cuid()) @db.NVarChar(255)
+  creatorUid String    @db.NVarChar(255)
+  label      String    @db.NVarChar(255)
+  token      String    @unique @default(uuid()) @db.NVarChar(255)
   expiresOn  DateTime?
-  createdOn  DateTime  @default(now())
-  updatedOn  DateTime  @default(now())
+  createdOn  DateTime  @default(dbgenerated("sysutcdatetime()"), map: "DF__InfraToke__creat__7D8391DF")
+  updatedOn  DateTime  @default(dbgenerated("sysutcdatetime()"), map: "DF__InfraToke__updat__7E77B618")
+}
+
+model InvitedUsers {
+  adminUid     String   @db.NVarChar(255)
+  adminEmail   String   @db.NVarChar(255)
+  inviteeEmail String   @unique @db.NVarChar(255)
+  invitedOn    DateTime @default(dbgenerated("sysutcdatetime()"), map: "DF__InvitedUs__invit__5A3A55A2")
+  User         User     @relation(fields: [adminUid], references: [uid], onDelete: Cascade)
 }

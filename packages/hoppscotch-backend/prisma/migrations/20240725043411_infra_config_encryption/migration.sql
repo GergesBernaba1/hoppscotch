@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "InfraConfig" ADD COLUMN     "isEncrypted" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "InfraConfig" ADD "isEncrypted" BIT NOT NULL DEFAULT 0;

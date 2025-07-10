@@ -5,8 +5,8 @@
 
 */
 -- AlterTable
-ALTER TABLE "Shortcode" ADD COLUMN     "embedProperties" JSONB,
-ADD COLUMN     "updatedOn" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE "Shortcode" ADD "embedProperties" NVARCHAR(MAX);
+ALTER TABLE "Shortcode" ADD "updatedOn" DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME();
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Shortcode_id_key" ON "Shortcode"("id");

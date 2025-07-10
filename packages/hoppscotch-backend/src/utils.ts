@@ -59,11 +59,11 @@ export const trace = <T>(val: T) => {
  */
 export const namedTrace =
   <T>(name: string, transform?: (val: T) => unknown) =>
-  (val: T) => {
-    console.log(`${name}:`, transform ? transform(val) : val);
+    (val: T) => {
+      console.log(`${name}:`, transform ? transform(val) : val);
 
-    return val;
-  };
+      return val;
+    };
 
 /**
  * Returns the list of required roles annotated on a GQL Operation
@@ -340,8 +340,10 @@ const ENCRYPTION_ALGORITHM = 'aes-256-cbc';
  * @returns The encrypted text
  */
 export function encrypt(text: string, key = process.env.DATA_ENCRYPTION_KEY) {
+   console.log('KEY LENGTH:', Buffer.from(process.env.DATA_ENCRYPTION_KEY || '').length);
+  console.log('KEY VALUE:', process.env.DATA_ENCRYPTION_KEY);
   if (!key) throw new Error(ENV_NOT_FOUND_KEY_DATA_ENCRYPTION_KEY);
-
+  if (Buffer.from(key).length !== 32) throw new Error('DATA_ENCRYPTION_KEY must be exactly 32 bytes for aes-256-cbc');
   if (text === null || text === undefined) return text;
 
   const iv = crypto.randomBytes(16);
@@ -365,8 +367,13 @@ export function decrypt(
   encryptedData: string,
   key = process.env.DATA_ENCRYPTION_KEY,
 ) {
-  if (!key) throw new Error(ENV_NOT_FOUND_KEY_DATA_ENCRYPTION_KEY);
 
+  console.log('KEY LENGTH:', Buffer.from(process.env.DATA_ENCRYPTION_KEY || '').length);
+
+  console.log('KEY VALUE:', process.env.DATA_ENCRYPTION_KEY);
+
+  if (!key) throw new Error(ENV_NOT_FOUND_KEY_DATA_ENCRYPTION_KEY);
+  if (Buffer.from(key).length !== 32) throw new Error('DATA_ENCRYPTION_KEY must be exactly 32 bytes for aes-256-cbc');
   if (encryptedData === null || encryptedData === undefined) {
     return encryptedData;
   }

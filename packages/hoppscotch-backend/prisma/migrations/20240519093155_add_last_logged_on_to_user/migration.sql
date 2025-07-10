@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "User" ADD COLUMN     "lastLoggedOn" TIMESTAMP(3);
+ALTER TABLE "User" ADD "lastLoggedOn" DATETIME2;

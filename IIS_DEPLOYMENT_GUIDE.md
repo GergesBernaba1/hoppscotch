@@ -134,7 +134,7 @@ module.exports = {
       JWT_SECRET: 'hoppscotch-secure-jwt-secret-key-2025',
       REDIRECT_URL: 'http://hoppscotch.expertapps.com.sa',
       WHITELISTED_ORIGINS: 'http://hoppscotch.expertapps.com.sa',
-      DATA_ENCRYPTION_KEY: 'hoppscotch-data-encryption-key-32'
+      DATA_ENCRYPTION_KEY: 'hoppscotch-data-encryption-key-32-chars'
     }
   }]
 }
